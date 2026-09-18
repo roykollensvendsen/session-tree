@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+# Run session-tree straight from a clone, with no install step.
+#
+# The repository doubles as a Claude Code skill: cloned into
+# ~/.claude/skills/session-tree, this is the command SKILL.md points at.
+set -euo pipefail
+HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+exec env PYTHONPATH="$HERE/src${PYTHONPATH:+:$PYTHONPATH}" \
+     python3 -m session_tree.cli "$@"

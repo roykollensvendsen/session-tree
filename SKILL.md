@@ -18,10 +18,13 @@ description: >-
 
 # Session tree
 
+<!-- not run: opens a browser window and leaves a server running -->
 ```bash
 ~/.claude/skills/session-tree/scripts/session-tree open     # own window, live
 ~/.claude/skills/session-tree/scripts/session-tree status   # same picture in the terminal
 ```
+
+No install step: the script runs the package straight out of the clone.
 
 Leave the window open beside the terminal. It updates itself as the work
 happens; there is nothing to refresh and nothing to rebuild.
@@ -101,6 +104,10 @@ choice is remembered.
 
 ## Ports and processes
 
-One server, `127.0.0.1:8787` (`SESSION_TREE_PORT` to change it), started on
-demand and shared by every window. `session-tree stop` ends it; no session owns
-it, so stopping it never interrupts work.
+One server, `127.0.0.1:8787` (`--port`, or `SESSION_TREE_PORT`, to change it),
+started on demand and shared by every window. `session-tree stop` ends it; no
+session owns it, so stopping it never interrupts work.
+
+This directory is a clone of
+[roykollensvendsen/session-tree](https://github.com/roykollensvendsen/session-tree).
+Changes made here are commits, and land through a pull request.
