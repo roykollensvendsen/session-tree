@@ -1,0 +1,548 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+<meta charset="utf-8">
+<title>Session Tree</title>
+<style>
+  :root{
+    --bg:#0e1116; --panel:#151a22; --panel2:#1b212b; --line:#252d3a;
+    --ink:#e6edf6; --dim:#8b97a8; --faint:#5b6678;
+    --pending:#49556a; --active:#3b82f6; --done:#22c55e;
+    --stall:#eab308; --block:#ef4444; --gone:#3a4150;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%}
+  body{
+    background:var(--bg); color:var(--ink);
+    font:13px/1.45 ui-sans-serif,-apple-system,"Segoe UI",Roboto,sans-serif;
+    -webkit-font-smoothing:antialiased;
+  }
+  header{
+    position:sticky; top:0; z-index:20; display:flex; align-items:center; gap:14px;
+    padding:10px 16px; background:rgba(14,17,22,.94); backdrop-filter:blur(8px);
+    border-bottom:1px solid var(--line);
+  }
+  h1{font-size:13px;font-weight:600;margin:0;letter-spacing:.3px}
+  .live{display:flex;align-items:center;gap:6px;color:var(--dim);font-size:11px}
+  .dot{width:7px;height:7px;border-radius:50%;background:var(--done);
+       box-shadow:0 0 0 0 rgba(34,197,94,.6); animation:beat 2s infinite}
+  .dot.off{background:var(--block);animation:none}
+  @keyframes beat{0%{box-shadow:0 0 0 0 rgba(34,197,94,.5)}70%{box-shadow:0 0 0 7px rgba(34,197,94,0)}100%{box-shadow:0 0 0 0 rgba(34,197,94,0)}}
+  .spacer{flex:1}
+  .key{display:flex;gap:11px;flex-wrap:wrap;font-size:10.5px;color:var(--dim)}
+  .key i{display:inline-block;width:8px;height:8px;border-radius:2px;margin-right:4px;vertical-align:-1px}
+  main{padding:14px 16px 60px}
+
+  .sess{background:var(--panel);border:1px solid var(--line);border-radius:10px;margin-bottom:12px;overflow:hidden}
+  .sess.idle{opacity:.58}
+  .sess.idle .shead{background:transparent}
+  .shead{display:flex;align-items:center;gap:9px;padding:9px 13px;cursor:pointer;
+         background:linear-gradient(90deg,rgba(59,130,246,.09),transparent)}
+  .shead:hover{background:rgba(255,255,255,.035)}
+  .pill{font-size:10px;padding:1.5px 7px;border-radius:99px;border:1px solid var(--line);color:var(--dim);white-space:nowrap}
+  .pill.on{color:#bfe3ff;border-color:rgba(59,130,246,.55);background:rgba(59,130,246,.14)}
+  .pill.bg{color:#e8d6a8;border-color:rgba(234,179,8,.4);background:rgba(234,179,8,.1)}
+  .sname{font-weight:600;font-size:12.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .spath{color:var(--faint);font-size:10.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+  .caret{color:var(--faint);transition:transform .15s;font-size:10px}
+  .sess.closed .caret{transform:rotate(-90deg)}
+  .sess.closed .sbody{display:none}
+  .sbody{padding:4px 13px 13px}
+
+  .now{display:flex;align-items:center;gap:7px;font-size:11.5px;color:#a8c7f0;
+       padding:6px 10px;margin:2px 0 10px;border-left:2px solid var(--active);
+       background:rgba(59,130,246,.07);border-radius:0 5px 5px 0}
+  .now.stall{color:#f0dfa8;border-color:var(--stall);background:rgba(234,179,8,.07)}
+  .now.none{color:var(--faint);border-color:var(--line);background:transparent}
+
+  .goals{display:flex;flex-wrap:wrap;gap:12px;align-items:flex-start}
+  .goal{background:var(--panel2);border:1px solid var(--line);border-radius:8px;
+        padding:9px 10px 6px;flex:1 1 330px;min-width:300px}
+  .gtitle{font-size:11.5px;font-weight:600;color:#cbd6e6;margin-bottom:2px;
+          white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .gmeta{font-size:10px;color:var(--faint);margin-bottom:7px}
+  .bar{height:3px;border-radius:2px;background:#222936;overflow:hidden;margin-bottom:8px}
+  .bar b{display:block;height:100%;background:var(--done);transition:width .4s}
+
+  svg{display:block;width:100%;overflow:visible}
+  .node rect{transition:opacity .2s}
+  .node text{pointer-events:none;font-size:10.5px;fill:var(--ink)}
+  .node .id{font-size:9px;fill:var(--faint);font-weight:600}
+  .node{cursor:default}
+  .node.dim{opacity:.22}
+  .edge{fill:none;stroke:#2f3947;stroke-width:1.3}
+  .edge.lit{stroke:#7fb2ff;stroke-width:2}
+  .edge.dim{opacity:.15}
+  .bandlbl{font-size:9px;fill:var(--faint)}
+  .bandline{stroke:#1f2732;stroke-width:1}
+  .bandline.nowline{stroke:#3b82f6;stroke-dasharray:3 3;opacity:.5}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.45}}
+  .pulsing{animation:pulse 1.6s ease-in-out infinite}
+
+  .tip{position:fixed;z-index:60;max-width:390px;background:#0b0e13;color:var(--ink);
+       border:1px solid #33404f;border-radius:8px;padding:9px 11px;font-size:11.5px;
+       box-shadow:0 12px 34px rgba(0,0,0,.6);pointer-events:none;opacity:0;transition:opacity .1s;line-height:1.5}
+  .tip.on{opacity:1}
+  .tip h4{margin:0 0 5px;font-size:12px}
+  .tip p{margin:5px 0;color:#b9c4d4;white-space:pre-wrap}
+  .tip .row{color:var(--dim);font-size:10.5px;margin-top:5px;border-top:1px solid #222b36;padding-top:5px}
+  .rp{display:flex;align-items:center;gap:8px;padding:7px 10px;margin:2px 0 9px;
+      background:rgba(147,112,219,.09);border-left:2px solid #9370db;border-radius:0 5px 5px 0}
+  .rp button{background:#20283400;border:1px solid var(--line);color:var(--ink);
+      border-radius:5px;padding:2px 8px;font-size:11px;cursor:pointer;line-height:1.6}
+  .rp button:hover{background:#263041;border-color:#3d4a5c}
+  .rp .t{font-variant-numeric:tabular-nums;color:#c9b6ef;font-size:11px;min-width:96px}
+  .behind{background:#9370db;color:#160d24;border:none;border-radius:99px;padding:2px 9px;
+      font-size:10.5px;font-weight:700;cursor:pointer;white-space:nowrap;animation:nudge 2s infinite}
+  .behind:hover{background:#a98be6}
+  @keyframes nudge{0%,100%{opacity:1}50%{opacity:.62}}
+  .sess.frozen{box-shadow:inset 0 0 0 1px rgba(147,112,219,.5)}
+  .sess.frozen .shead{background:linear-gradient(90deg,rgba(147,112,219,.16),transparent)}
+  .rp input[type=range]{flex:1;accent-color:#9370db;height:3px;cursor:pointer;min-width:90px}
+  .track{position:relative;height:11px;margin:-4px 0 6px}
+  .track i{position:absolute;top:3px;width:2px;height:6px;border-radius:1px;opacity:.75}
+  .evline{font-size:11px;color:#b9c4d4;padding:5px 10px 7px;margin:-6px 0 9px;
+      border-left:2px solid #9370db;background:rgba(147,112,219,.05);border-radius:0 5px 5px 0}
+  .evline b{color:#d9c9f5;font-weight:600}
+  .evline .said{color:#a8e0c0}
+  .evline .ghost{color:var(--faint);display:block;font-size:10.5px;margin-top:2px;
+      overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .rbtn{background:none;border:1px solid var(--line);color:var(--dim);border-radius:5px;
+      padding:1px 7px;font-size:10px;cursor:pointer;white-space:nowrap}
+  .rbtn:hover{color:var(--ink);border-color:#3d4a5c}
+  .rbtn.on{color:#d9c9f5;border-color:#9370db;background:rgba(147,112,219,.16)}
+  .empty{color:var(--faint);font-size:11px;padding:8px 2px;font-style:italic}
+</style>
+</head>
+<body>
+<header>
+  <h1>Session Tree</h1>
+  <span class="live"><span class="dot" id="dot"></span><span id="conn">kobler til…</span></span>
+  <span class="spacer"></span>
+  <span class="key">
+    <span><i style="background:var(--active)"></i>jobber nå</span>
+    <span><i style="background:var(--done)"></i>ferdig</span>
+    <span><i style="background:var(--stall)"></i>står stille</span>
+    <span><i style="background:var(--block)"></i>blokkert</span>
+    <span><i style="background:var(--pending)"></i>venter</span>
+    <span><i style="background:var(--gone)"></i>forkastet</span>
+  </span>
+</header>
+<main id="root"></main>
+<div class="tip" id="tip"></div>
+
+<script>
+const COLOR={pending:'#49556a',waiting:'#49556a',in_progress:'#3b82f6',
+             completed:'#22c55e',stalled:'#eab308',blocked:'#ef4444',abandoned:'#3a4150'};
+const LABEL={pending:'venter',waiting:'venter på andre',in_progress:'jobber nå',
+             completed:'ferdig',stalled:'står stille',blocked:'blokkert',abandoned:'forkastet'};
+
+const PENDING=[];   // graphs waiting for their card to have a real width
+const REPLAY=new Map();   // sessionId -> {t, playing, timer}
+let LAST=null;            // last payload, so replay can re-render without the stream
+
+const EVK={prompt:'du sa',create:'ny node','status:in_progress':'startet',
+           'status:completed':'ferdig','status:pending':'satt på vent',
+           'status:abandoned':'forkastet'};
+
+/* The graph as it stood at time t: a node exists only once it was created, and
+   wears the last status it had been given by then. The derived states are
+   recomputed against that moment, never against now. */
+function stateAt(sess,t){
+  const quiet=(()=>{ let last=sess.spanStart;
+    for(const e of sess.events||[]) if(e.at<=t) last=e.at; else break;
+    return (t-last)/1000; })();
+  const goals=[];
+  for(const g of sess.goals){
+    const nodes=[];
+    for(const n of g.nodes){
+      if(n.createdMs&&n.createdMs>t) continue;
+      let st='pending';
+      for(const h of n.history||[]) if(h.atMs!=null&&h.atMs<=t) st=h.status;
+      nodes.push(Object.assign({},n,{status:st,view:st}));
+    }
+    if(nodes.length) goals.push(Object.assign({},g,{nodes:nodes}));
+  }
+  const open=new Set();
+  goals.forEach(g=>g.nodes.forEach(n=>{ if(n.status==='pending'||n.status==='in_progress') open.add(n.id); }));
+  goals.forEach(g=>g.nodes.forEach(n=>{
+    const blocking=(n.blockedBy||[]).filter(d=>open.has(d));
+    n.waitingOn=blocking;
+    if(n.status==='in_progress'){
+      if(blocking.length) n.view='blocked';
+      else if(quiet>900) n.view='stalled';
+    } else if(n.status==='pending'&&blocking.length) n.view='waiting';
+    n.durationMs=(n.startedMs&&n.startedMs<=t)
+      ? ((n.endedMs&&n.endedMs<=t)?n.endedMs-n.startedMs:t-n.startedMs) : null;
+  }));
+  return goals;
+}
+
+function evAt(sess,t){
+  let cur=null;
+  for(const e of sess.events||[]) if(e.at<=t) cur=e; else break;
+  return cur;
+}
+function clock(ms){ const d=new Date(ms);
+  return d.toLocaleTimeString('no-NO',{hour:'2-digit',minute:'2-digit',second:'2-digit'}); }
+const tip=document.getElementById('tip');
+const collapsed=new Set(JSON.parse(localStorage.getItem('st.collapsed')||'[]'));
+const opened=new Set(JSON.parse(localStorage.getItem('st.opened')||'[]'));
+
+function ago(s){ s=Math.max(0,Math.round(s));
+  if(s<60)return s+'s'; if(s<3600)return Math.round(s/60)+' min';
+  if(s<86400)return (s/3600).toFixed(1)+' t'; return Math.round(s/86400)+' d'; }
+function dur(ms){ return ms==null?'':ago(ms/1000); }
+function esc(s){ return (s||'').replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c])); }
+
+function showTip(e,html){
+  tip.innerHTML=html; tip.classList.add('on');
+  const r=tip.getBoundingClientRect();
+  let x=e.clientX+14, y=e.clientY+14;
+  if(x+r.width>innerWidth-10) x=e.clientX-r.width-14;
+  if(y+r.height>innerHeight-10) y=Math.max(10,e.clientY-r.height-14);
+  tip.style.left=x+'px'; tip.style.top=y+'px';
+}
+const hideTip=()=>tip.classList.remove('on');
+
+/* Bands are the order the work has to happen in, not a clock: a node sits in
+   the first band where every dependency above it is already done. */
+function layout(goal,width){
+  const nodes=goal.nodes, depth=goal.depth||{};
+  const bands=new Map();
+  nodes.forEach(n=>{ const d=depth[n.id]||0; if(!bands.has(d))bands.set(d,[]); bands.get(d).push(n); });
+  const ds=[...bands.keys()].sort((a,b)=>a-b);
+  const W=Math.max(300,width||330);
+  const BH=52, NH=30, pos={};
+  ds.forEach((d,bi)=>{
+    const row=bands.get(d);
+    // pull each node toward the average x of what it depends on, so the wires
+    // cross as little as possible without a real layered layout
+    row.forEach(n=>{
+      const ups=(n.blockedBy||[]).map(i=>pos[i]).filter(Boolean);
+      n._h=ups.length?ups.reduce((a,p)=>a+p.cx,0)/ups.length:W/2;
+    });
+    row.sort((a,b)=>a._h-b._h);
+    const gap=W/row.length;
+    row.forEach((n,i)=>{
+      const w=Math.min(gap-8,190), cx=gap*i+gap/2;
+      pos[n.id]={x:cx-w/2,y:bi*BH+16,w:w,h:NH,cx:cx,cy:bi*BH+16+NH/2,band:bi};
+    });
+  });
+  return {pos,bands:ds,height:ds.length*BH+22,W};
+}
+
+function renderGoal(goal,sess,width){
+  const L=layout(goal,width), NS='http://www.w3.org/2000/svg';
+  const svg=document.createElementNS(NS,'svg');
+  svg.setAttribute('viewBox',`0 0 ${L.W} ${L.height}`);
+  svg.setAttribute('height',L.height);
+
+  const live=goal.nodes.filter(n=>n.view!=='abandoned');
+  const firstOpen=live.find(n=>n.view!=='completed');
+  const nowBand=firstOpen?L.pos[firstOpen.id].band:-1;
+
+  L.bands.forEach((d,bi)=>{
+    const y=bi*52+2;
+    const ln=document.createElementNS(NS,'line');
+    ln.setAttribute('x1',0);ln.setAttribute('x2',L.W);ln.setAttribute('y1',y);ln.setAttribute('y2',y);
+    ln.setAttribute('class','bandline'+(bi===nowBand?' nowline':''));
+    svg.appendChild(ln);
+    if(bi===nowBand){
+      const t=document.createElementNS(NS,'text');
+      t.setAttribute('x',1);t.setAttribute('y',y+11);t.setAttribute('class','bandlbl');
+      t.style.fill='#5e8fd0'; t.textContent='nå';
+      svg.appendChild(t);
+    }
+  });
+
+  goal.nodes.forEach(n=>{
+    (n.blockedBy||[]).forEach(dep=>{
+      const a=L.pos[dep], b=L.pos[n.id];
+      if(!a||!b) return;
+      const p=document.createElementNS(NS,'path');
+      const my=(a.cy+a.h/2+b.y)/2;
+      p.setAttribute('d',`M${a.cx},${a.y+a.h} C${a.cx},${my} ${b.cx},${my} ${b.cx},${b.y}`);
+      p.setAttribute('class','edge');
+      p.dataset.from=dep; p.dataset.to=n.id;
+      svg.appendChild(p);
+    });
+  });
+
+  goal.nodes.forEach(n=>{
+    const p=L.pos[n.id]; if(!p) return;
+    const g=document.createElementNS(NS,'g');
+    g.setAttribute('class','node'); g.dataset.id=n.id;
+
+    const r=document.createElementNS(NS,'rect');
+    r.setAttribute('x',p.x);r.setAttribute('y',p.y);r.setAttribute('width',p.w);r.setAttribute('height',p.h);
+    r.setAttribute('rx',6);
+    const c=COLOR[n.view]||COLOR.pending;
+    r.setAttribute('fill',n.view==='completed'?'rgba(34,197,94,.14)':
+                          n.view==='in_progress'?'rgba(59,130,246,.2)':
+                          n.view==='blocked'?'rgba(239,68,68,.14)':
+                          n.view==='stalled'?'rgba(234,179,8,.13)':'rgba(255,255,255,.035)');
+    r.setAttribute('stroke',c);
+    r.setAttribute('stroke-width',n.view==='in_progress'?2:1.2);
+    if(n.view==='abandoned') r.setAttribute('stroke-dasharray','3 3');
+    if(n.view==='in_progress') g.classList.add('pulsing');
+    g.appendChild(r);
+
+    const id=document.createElementNS(NS,'text');
+    id.setAttribute('x',p.x+7);id.setAttribute('y',p.y+12);id.setAttribute('class','id');
+    id.textContent='#'+n.id;
+    g.appendChild(id);
+
+    const label=document.createElementNS(NS,'text');
+    label.setAttribute('x',p.x+7);label.setAttribute('y',p.y+23);
+    const room=Math.floor((p.w-14)/5.4);
+    let s=n.subject||''; if(s.length>room) s=s.slice(0,room-1)+'…';
+    label.textContent=s;
+    if(n.view==='abandoned'){label.style.fill='#5b6678';label.style.textDecoration='line-through';}
+    if(n.view==='completed')label.style.fill='#b7e6c6';
+    g.appendChild(label);
+
+    if(n.view==='completed'){
+      const ok=document.createElementNS(NS,'text');
+      ok.setAttribute('x',p.x+p.w-13);ok.setAttribute('y',p.y+13);
+      ok.setAttribute('class','id');ok.style.fill='#22c55e';ok.textContent='✓';
+      g.appendChild(ok);
+    }
+
+    g.addEventListener('mousemove',e=>{
+      const waiting=(n.waitingOn||[]).length?
+        `<div class="row">venter på #${n.waitingOn.join(', #')}</div>`:'';
+      const time=n.durationMs!=null?
+        `<div class="row">${n.status==='in_progress'?'holdt på i ':'tok '}${dur(n.durationMs)}</div>`:'';
+      showTip(e,`<h4>#${n.id} · ${esc(n.subject)}</h4>
+        <div style="color:${COLOR[n.view]};font-size:11px;font-weight:600">${LABEL[n.view]||n.view}</div>
+        ${n.description?`<p>${esc(n.description)}</p>`:''}${waiting}${time}
+        <div class="row">${esc(sess.project)}${sess.branch?' · '+esc(sess.branch):''}</div>`);
+      svg.querySelectorAll('.node').forEach(o=>o.classList.toggle('dim',o.dataset.id!==n.id &&
+        !(n.blockedBy||[]).includes(o.dataset.id) && !(n.blocks||[]).includes(o.dataset.id)));
+      svg.querySelectorAll('.edge').forEach(o=>{
+        const lit=o.dataset.from===n.id||o.dataset.to===n.id;
+        o.classList.toggle('lit',lit); o.classList.toggle('dim',!lit);
+      });
+    });
+    g.addEventListener('mouseleave',()=>{
+      hideTip();
+      svg.querySelectorAll('.node').forEach(o=>o.classList.remove('dim'));
+      svg.querySelectorAll('.edge').forEach(o=>{o.classList.remove('lit');o.classList.remove('dim');});
+    });
+    svg.appendChild(g);
+  });
+  return svg;
+}
+
+function stopPlay(id){
+  const r=REPLAY.get(id);
+  if(r&&r.timer){ clearInterval(r.timer); r.timer=null; r.playing=false; }
+}
+
+function replayPanel(s,rp){
+  const box=document.createElement('div');
+  const a=s.spanStart, b=s.spanEnd||s.spanStart+1, span=Math.max(1,b-a);
+  const ev=evAt(s,rp.t);
+  // the stream keeps arriving while this session is frozen; say so, or the
+  // viewer reads a still picture as a stalled one
+  const behind=(s.events||[]).filter(e=>e.at>rp.t).length;
+
+  const bar=document.createElement('div');
+  bar.className='rp';
+  bar.innerHTML=`<button title="forrige hendelse">⏮</button>
+    <button title="${rp.playing?'pause':'spill av'}">${rp.playing?'⏸':'▶'}</button>
+    <button title="neste hendelse">⏭</button>
+    <input type="range" min="${a}" max="${b}" value="${rp.t}" step="1000">
+    <span class="t">${clock(rp.t)}</span>
+    ${behind?`<button class="behind" title="hopp til nå">${behind} nye ↦</button>`:''}
+    <button title="tilbake til live">live ⏏</button>`;
+  const kids=[...bar.children];
+  const liveBtn=kids[kids.length-1];
+  const behindBtn=bar.querySelector('.behind');
+  const [prev,play,next,slider]=kids;
+  if(behindBtn) behindBtn.onclick=()=>{ stopPlay(s.sessionId); REPLAY.delete(s.sessionId); refresh(); };
+
+  const jump=dir=>{
+    stopPlay(s.sessionId);
+    const list=s.events||[];
+    const target=dir>0 ? list.find(e=>e.at>rp.t) : [...list].reverse().find(e=>e.at<rp.t);
+    rp.t=target?target.at:(dir>0?b:a); refresh();
+  };
+  prev.onclick=()=>jump(-1);
+  next.onclick=()=>jump(1);
+  slider.oninput=e=>{ stopPlay(s.sessionId); rp.t=+e.target.value; refresh(); };
+  liveBtn.onclick=()=>{ stopPlay(s.sessionId); REPLAY.delete(s.sessionId); refresh(); };
+  play.onclick=()=>{
+    if(rp.playing){ stopPlay(s.sessionId); refresh(); return; }
+    rp.playing=true;
+    // event by event: a real-time replay of a 40-minute session is 40 minutes
+    rp.timer=setInterval(()=>{
+      const nxt=(s.events||[]).find(e=>e.at>rp.t);
+      if(!nxt){ stopPlay(s.sessionId); rp.t=b; refresh(); return; }
+      rp.t=nxt.at; refresh();
+    },850);
+    refresh();
+  };
+  box.appendChild(bar);
+
+  // where the events sit in the session, so pauses are visible as gaps
+  const track=document.createElement('div');
+  track.className='track';
+  (s.events||[]).forEach(e=>{
+    const tick=document.createElement('i');
+    tick.style.left=((e.at-a)/span*100)+'%';
+    tick.style.background=e.kind==='prompt'?'#5ad19a':
+      e.kind==='create'?'#6b7a90':
+      e.kind==='status:completed'?'#22c55e':
+      e.kind==='status:abandoned'?'#3a4150':'#3b82f6';
+    tick.style.opacity=e.at<=rp.t?'.95':'.25';
+    tick.title=clock(e.at)+' — '+(EVK[e.kind]||e.kind);
+    track.appendChild(tick);
+  });
+  box.appendChild(track);
+
+  const line=document.createElement('div');
+  line.className='evline';
+  if(ev){
+    const idx=(s.events||[]).indexOf(ev);
+    const nxt=(s.events||[])[idx+1];
+    line.innerHTML=(ev.kind==='prompt'
+        ? `<b class="said">du sa:</b> ${esc(ev.text)}`
+        : `<b>${EVK[ev.kind]||ev.kind}</b> ${ev.taskId?'#'+ev.taskId+' ':''}${esc(ev.text)}`)
+      +`<span class="ghost">${idx+1}/${(s.events||[]).length}${nxt?' · neste: '+(EVK[nxt.kind]||nxt.kind)+' '+esc((nxt.text||'').slice(0,60)):' · slutt'}</span>`;
+  } else line.innerHTML='<span class="ghost">før første hendelse</span>';
+  if(behind){
+    const note=document.createElement('span');
+    note.className='ghost';
+    note.style.color='#c9b6ef';
+    note.textContent=`· dette er fortid — ${behind} hendelse${behind>1?'r':''} har skjedd siden`;
+    line.appendChild(note);
+  }
+  box.appendChild(line);
+  return box;
+}
+
+function renderSession(s){
+  const rp=REPLAY.get(s.sessionId);
+  const goals=rp?stateAt(s,rp.t):s.goals;
+  const el=document.createElement('section');
+  // an idle session with nothing to draw folds itself away until asked for
+  const empty=!s.goals.length&&!s.active;
+  const shut=collapsed.has(s.sessionId)||(empty&&!opened.has(s.sessionId));
+  el.className='sess'+(s.active?'':' idle')+(shut?' closed':'')+(rp?' frozen':'');
+
+  const head=document.createElement('div');
+  head.className='shead';
+  const state=s.active?'<span class="pill on">aktiv</span>':
+    (s.alive?`<span class="pill">stille ${ago(s.quietSeconds)}</span>`:'<span class="pill">avsluttet</span>');
+  head.innerHTML=`<span class="caret">▾</span>${state}
+    ${s.kind==='bg'?'<span class="pill bg">bakgrunn</span>':''}
+    <span class="sname">${esc(s.name||s.firstPrompt||'(uten navn)')}</span>
+    <span class="spath">${esc(s.project)}${s.branch?' · '+esc(s.branch):''}</span>
+    <span style="flex:1"></span>
+    ${(s.events&&s.events.length>1)?`<button class="rbtn${rp?' on':''}">⏱ replay</button>`:''}`;
+  const rbtn=head.querySelector('.rbtn');
+  if(rbtn) rbtn.onclick=e=>{
+    e.stopPropagation();
+    if(REPLAY.has(s.sessionId)){ stopPlay(s.sessionId); REPLAY.delete(s.sessionId); }
+    else REPLAY.set(s.sessionId,{t:s.spanStart,playing:false});
+    el.classList.remove('closed'); collapsed.delete(s.sessionId); opened.add(s.sessionId);
+    refresh();
+  };
+  head.onclick=()=>{
+    el.classList.toggle('closed');
+    if(el.classList.contains('closed')){collapsed.add(s.sessionId);opened.delete(s.sessionId);}
+    else{collapsed.delete(s.sessionId);opened.add(s.sessionId);}
+    localStorage.setItem('st.collapsed',JSON.stringify([...collapsed]));
+    localStorage.setItem('st.opened',JSON.stringify([...opened]));
+  };
+  el.appendChild(head);
+
+  const body=document.createElement('div');
+  body.className='sbody';
+
+  if(rp) body.appendChild(replayPanel(s,rp));
+  const all=goals.flatMap(g=>g.nodes);
+  const running=all.find(n=>n.view==='in_progress');
+  const stalled=all.find(n=>n.view==='stalled');
+  const blocked=all.find(n=>n.view==='blocked');
+  const now=document.createElement('div');
+  if(running){ now.className='now';
+    now.innerHTML=`▶ <b>#${running.id}</b> ${esc(running.subject)}${running.durationMs!=null?` <span style="color:var(--faint)">· ${dur(running.durationMs)}</span>`:''}`; }
+  else if(blocked){ now.className='now stall';
+    now.innerHTML=`⏸ <b>#${blocked.id}</b> ${esc(blocked.subject)} — blokkert av #${(blocked.waitingOn||[]).join(', #')}`; }
+  else if(stalled){ now.className='now stall';
+    now.innerHTML=`⚠ <b>#${stalled.id}</b> ${esc(stalled.subject)} — ingen aktivitet på ${ago(s.quietSeconds)}`; }
+  else { now.className='now none';
+    now.textContent=all.length?'ingen node under arbeid':'ingen oppgavegraf i denne økta';}
+  body.appendChild(now);
+
+  if(goals.length){
+    const wrap=document.createElement('div'); wrap.className='goals';
+    goals.forEach(g=>{
+      const live=g.nodes.filter(n=>n.view!=='abandoned');
+      const done=live.filter(n=>n.view==='completed').length;
+      const card=document.createElement('div'); card.className='goal';
+      card.innerHTML=`<div class="gtitle">${esc(g.title)}</div>
+        <div class="gmeta">${done}/${live.length} ferdig${g.nodes.length>live.length?` · ${g.nodes.length-live.length} forkastet`:''}</div>
+        <div class="bar"><b style="width:${live.length?done/live.length*100:0}%"></b></div>`;
+      wrap.appendChild(card);
+      PENDING.push({card:card,goal:g,sess:s});
+    });
+    body.appendChild(wrap);
+  }
+  el.appendChild(body);
+  return el;
+}
+
+function refresh(){ if(LAST) render(LAST); }
+
+function render(data){
+  LAST=data;
+  // ?rp=<0..1> opens replay on the first active session at that point of its
+  // span -- for screenshots, and for linking someone to a moment.
+  const q=new URLSearchParams(location.search);
+  if(q.has('rp')&&!REPLAY.size){
+    const s0=data.sessions.find(x=>x.active&&x.events&&x.events.length>1);
+    if(s0) REPLAY.set(s0.sessionId,
+      {t:s0.spanStart+(s0.spanEnd-s0.spanStart)*parseFloat(q.get('rp')||'0.5'),playing:false});
+  }
+  const root=document.getElementById('root');
+  const keep=window.scrollY;
+  root.innerHTML='';
+  if(!data.sessions.length){
+    root.innerHTML='<div class="empty">ingen økter funnet</div>'; return;
+  }
+  PENDING.length=0;
+  data.sessions.forEach(s=>root.appendChild(renderSession(s)));
+  // second pass: the cards are in the document now, so their width is real
+  PENDING.forEach(p=>p.card.appendChild(renderGoal(p.goal,p.sess,p.card.clientWidth-22)));
+  PENDING.length=0;
+  window.scrollTo(0,keep);
+}
+
+let es;
+/* ?once=1 renders a single snapshot and opens no stream -- for screenshots and
+   for anything that waits for the page to finish loading. */
+if(new URLSearchParams(location.search).has('once')){
+  fetch('/api/state').then(r=>r.json()).then(d=>{
+    render(d);
+    document.getElementById('dot').classList.add('off');
+    document.getElementById('conn').textContent='stillbilde';
+  });
+}else connect();
+
+function connect(){
+  es=new EventSource('/events');
+  es.onopen=()=>{document.getElementById('dot').classList.remove('off');
+                 document.getElementById('conn').textContent='live';};
+  es.onmessage=e=>{ try{render(JSON.parse(e.data));}catch(err){console.error(err);} };
+  es.onerror=()=>{ document.getElementById('dot').classList.add('off');
+                   document.getElementById('conn').textContent='frakoblet – kobler til igjen…';
+                   es.close(); setTimeout(connect,2000); };
+}
+addEventListener('resize',()=>{ fetch('/api/state').then(r=>r.json()).then(render); });
+</script>
+</body>
+</html>

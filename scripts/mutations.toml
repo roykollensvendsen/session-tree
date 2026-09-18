@@ -1,0 +1,58 @@
+# Every rule this project enforces, and the one line that carries it.
+#
+# A rule nothing catches is a rule nothing protects. `scripts/mutate.py` turns
+# each of these off in turn and runs the suite; a rule whose removal breaks no
+# test has no test. Add a test of your own that counts the rules in the source
+# against the rows here, so this list cannot fall behind.
+#
+# `find` is a regular expression matching the single line to replace; `replace`
+# is what replaces it, keeping the file valid. The line's own indentation is
+# kept, so do not write indentation here.
+#
+# [[rule]]
+# name = "what the rule says, in words"
+# file = "src/session_tree/somewhere.py"
+# find = 'if limit_exceeded:'
+# replace = 'if False:'
+
+[[rule]]
+name = "an abandoned task is kept not removed"
+file = "src/session_tree/state.py"
+find = 'node\["status"\] = "abandoned" if status == "deleted" else status'
+replace = 'node["status"] = status'
+
+[[rule]]
+name = "a started node waiting on open work is blocked"
+file = "src/session_tree/state.py"
+find = '^\s*node\["view"\] = "blocked"$'
+replace = 'node["view"] = node["status"]'
+
+[[rule]]
+name = "a silent started node goes stalled"
+file = "src/session_tree/state.py"
+find = '^\s*node\["view"\] = "stalled"$'
+replace = 'node["view"] = node["status"]'
+
+[[rule]]
+name = "independent goals are separate graphs"
+file = "src/session_tree/state.py"
+find = 'groups\.setdefault\(sets\.find\(node\["id"\]\), \[\]\)\.append\(node\)'
+replace = 'groups.setdefault("everything", []).append(node)'
+
+[[rule]]
+name = "harness noise is not mistaken for a prompt"
+file = "src/session_tree/state.py"
+find = '^\s*noise = \('
+replace = 'noise = ()  # '
+
+[[rule]]
+name = "a half written line is left for next time"
+file = "src/session_tree/state.py"
+find = 'if not line\.endswith'
+replace = 'if False:'
+
+[[rule]]
+name = "a truncated transcript is reread from the top"
+file = "src/session_tree/state.py"
+find = 'if size < self\.offset:'
+replace = 'if False:'
