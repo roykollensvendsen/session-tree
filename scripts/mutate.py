@@ -21,6 +21,7 @@ from __future__ import annotations
 import argparse
 import datetime as dt
 import json
+import os
 import pathlib
 import re
 import subprocess
@@ -85,8 +86,14 @@ def restore(path: pathlib.Path, original: str, mutated: str) -> bool:
 
 def run_suite() -> tuple[int, list[str]]:
     """Run the tests and give back how many failed, and which ones."""
+    # Two mutations that replace equal-length text produce files of identical
+    # size. CPython invalidates a .pyc on (mtime, size), so within the same
+    # second the second run can execute the first one's bytecode and report a
+    # kill for the wrong rule. Writing no bytecode at all removes the race.
+    env = {**os.environ, "PYTHONDONTWRITEBYTECODE": "1"}
     r = subprocess.run(
-        ["uv", "run", "pytest", "-q", "--tb=no", "--color=no", "-p", "no:cacheprovider"],  # noqa: S607
+        [sys.executable, "-m", "pytest", "-q", "--tb=no", "--color=no", "-p", "no:cacheprovider"],
+        env=env,
         capture_output=True,
         text=True,
         cwd=ROOT,
