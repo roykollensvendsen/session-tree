@@ -45,15 +45,14 @@ jobs:
           elif [ -n "$before" ] && [ "$before" != "0000000000000000000000000000000000000000" ] \
                && git cat-file -e "$before^{commit}" 2>/dev/null; then
             echo "range=$before..${{ github.sha }}" >> "$GITHUB_OUTPUT"
-          else
+          elif git rev-parse -q --verify "${{ github.sha }}^" >/dev/null; then
             # A branch's first push reports an all-zero predecessor, and a force
             # push reports one that no longer exists. Either way there is
             # nothing to compare against, so check the one commit.
-          elif git rev-parse -q --verify "${{ github.sha }}^" >/dev/null; then
             echo "range=${{ github.sha }}~1..${{ github.sha }}" >> "$GITHUB_OUTPUT"
           else
-            # The very first commit in a repository has no parent, so no
-            # range can name it; both tools also accept a single commit.
+            # The very first commit in a repository has no parent, so no range
+            # can name it; both tools also accept a single commit.
             echo "range=${{ github.sha }}" >> "$GITHUB_OUTPUT"
           fi
       - uses: crate-ci/committed@faeed42f2e10c244533a01525f13c4d8b6ce383f # v1.1.11
@@ -92,5 +91,7 @@ jobs:
         # Coverage is measured and printed, with no threshold yet: a number
         # picked before there is data is a guess with a gate on it.
         run: uv run pytest -q -p no:cacheprovider --strict-markers --cov
-      - name: The project's own check
-        run: uv run session-tree check .
+      - name: Every rule is killed by the test that names it
+        # Not a formality: the suite is run once per rule with that rule
+        # switched off, and a rule whose own test survives fails the job.
+        run: uv run python scripts/mutate.py
