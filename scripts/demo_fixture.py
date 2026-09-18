@@ -41,39 +41,87 @@ class Fake:
         self.path = home / ".claude" / "projects" / slug / f"{sid}.jsonl"
         self.path.parent.mkdir(parents=True, exist_ok=True)
         (home / ".claude" / "sessions").mkdir(parents=True, exist_ok=True)
-        (home / ".claude" / "sessions" / f"{pid}.json").write_text(json.dumps({
-            "pid": pid, "sessionId": sid, "cwd": cwd, "name": name,
-            "startedAt": int((NOW - 5400) * 1000), "kind": "bg", "status": "idle",
-        }))
+        (home / ".claude" / "sessions" / f"{pid}.json").write_text(
+            json.dumps(
+                {
+                    "pid": pid,
+                    "sessionId": sid,
+                    "cwd": cwd,
+                    "name": name,
+                    "startedAt": int((NOW - 5400) * 1000),
+                    "kind": "bg",
+                    "status": "idle",
+                }
+            )
+        )
 
     def _w(self, entry: dict[str, object]) -> None:
         self.lines.append(json.dumps(entry))
 
     def say(self, text: str, ago: float) -> None:
         """Record something the user said."""
-        self._w({"type": "user", "timestamp": stamp(ago),
-                 "message": {"role": "user", "content": text}})
+        self._w({"type": "user", "timestamp": stamp(ago), "message": {"role": "user", "content": text}})
 
     def add(self, subject: str, ago: float, goal: str, desc: str = "") -> str:
         """Record a TaskCreate and its result."""
         self.n += 1
         self.task += 1
         use = f"toolu_{self.n:04d}"
-        self._w({"type": "assistant", "timestamp": stamp(ago), "message": {"role": "assistant",
-                 "content": [{"type": "tool_use", "id": use, "name": "TaskCreate",
-                              "input": {"subject": subject, "description": desc,
-                                        "metadata": {"goal": goal}}}]}})
-        self._w({"type": "user", "timestamp": stamp(ago), "message": {"role": "user",
-                 "content": [{"type": "tool_result", "tool_use_id": use,
-                              "content": f"Task #{self.task} created successfully: {subject}"}]}})
+        self._w(
+            {
+                "type": "assistant",
+                "timestamp": stamp(ago),
+                "message": {
+                    "role": "assistant",
+                    "content": [
+                        {
+                            "type": "tool_use",
+                            "id": use,
+                            "name": "TaskCreate",
+                            "input": {"subject": subject, "description": desc, "metadata": {"goal": goal}},
+                        }
+                    ],
+                },
+            }
+        )
+        self._w(
+            {
+                "type": "user",
+                "timestamp": stamp(ago),
+                "message": {
+                    "role": "user",
+                    "content": [
+                        {
+                            "type": "tool_result",
+                            "tool_use_id": use,
+                            "content": f"Task #{self.task} created successfully: {subject}",
+                        }
+                    ],
+                },
+            }
+        )
         return str(self.task)
 
     def set(self, task: str, ago: float, **fields: object) -> None:
         """Record a TaskUpdate."""
         self.n += 1
-        self._w({"type": "assistant", "timestamp": stamp(ago), "message": {"role": "assistant",
-                 "content": [{"type": "tool_use", "id": f"toolu_{self.n:04d}", "name": "TaskUpdate",
-                              "input": {"taskId": task, **fields}}]}})
+        self._w(
+            {
+                "type": "assistant",
+                "timestamp": stamp(ago),
+                "message": {
+                    "role": "assistant",
+                    "content": [
+                        {
+                            "type": "tool_use",
+                            "id": f"toolu_{self.n:04d}",
+                            "name": "TaskUpdate",
+                            "input": {"taskId": task, **fields},
+                        }
+                    ],
+                },
+            }
+        )
 
     def close(self, mtime_ago: float) -> None:
         """Flush the transcript and age it, which is how idleness is judged."""
@@ -83,8 +131,13 @@ class Fake:
 
 def build(home: Path) -> None:
     """Write three sessions showing every state the view can draw."""
-    a = Fake(home, "aaaa1111-0000-0000-0000-000000000001", PIDS[0],
-             "/home/dev/orchard", "harvest scheduling rewrite")
+    a = Fake(
+        home,
+        "aaaa1111-0000-0000-0000-000000000001",
+        PIDS[0],
+        "/home/dev/orchard",
+        "harvest scheduling rewrite",
+    )
     a.say("rewrite the scheduler so overlapping windows cannot both win", ago=5200)
     parse = a.add("Read the window definitions", 5100, "scheduler")
     solve = a.add("Resolve overlapping windows", 5000, "scheduler")
@@ -93,8 +146,12 @@ def build(home: Path) -> None:
     a.set(solve, 4790, addBlockedBy=[parse])
     a.set(apply_, 4780, addBlockedBy=[solve])
     a.set(report, 4770, addBlockedBy=[apply_])
-    naive = a.add("Sort by start time and take the first", 4700, "scheduler",
-                  "Dropped: two windows can start together, so this decides nothing.")
+    naive = a.add(
+        "Sort by start time and take the first",
+        4700,
+        "scheduler",
+        "Dropped: two windows can start together, so this decides nothing.",
+    )
     a.set(parse, 4600, status="in_progress")
     a.set(parse, 4300, status="completed")
     a.set(naive, 4200, status="deleted")
@@ -105,8 +162,13 @@ def build(home: Path) -> None:
     a.set(notes, 2400, status="completed")
     a.close(mtime_ago=3)
 
-    b = Fake(home, "bbbb2222-0000-0000-0000-000000000002", PIDS[1],
-             "/home/dev/orchard-web", "pricing page redesign")
+    b = Fake(
+        home,
+        "bbbb2222-0000-0000-0000-000000000002",
+        PIDS[1],
+        "/home/dev/orchard-web",
+        "pricing page redesign",
+    )
     b.say("the pricing table breaks on narrow screens", ago=2600)
     measure = b.add("Measure the breakpoints", 2500, "pricing")
     rebuild = b.add("Rebuild the table as a grid", 2400, "pricing")
@@ -115,18 +177,23 @@ def build(home: Path) -> None:
     b.set(check, 2280, addBlockedBy=[rebuild])
     b.set(measure, 2200, status="in_progress")
     b.set(measure, 2000, status="completed")
-    b.set(rebuild, 1900, status="in_progress")   # silent since: goes amber
+    b.set(rebuild, 1900, status="in_progress")  # silent since: goes amber
     b.close(mtime_ago=2400)
 
-    c = Fake(home, "cccc3333-0000-0000-0000-000000000003", PIDS[2],
-             "/home/dev/almanac", "nightly import keeps timing out")
+    c = Fake(
+        home,
+        "cccc3333-0000-0000-0000-000000000003",
+        PIDS[2],
+        "/home/dev/almanac",
+        "nightly import keeps timing out",
+    )
     c.say("the nightly import times out about one run in three", ago=900)
     find = c.add("Find which stage stalls", 800, "timeout")
     fix = c.add("Shorten that stage", 700, "timeout")
     prove = c.add("Prove it over ten runs", 600, "timeout")
     c.set(fix, 690, addBlockedBy=[find])
     c.set(prove, 680, addBlockedBy=[fix])
-    c.set(fix, 300, status="in_progress")   # started while blocked: goes red
+    c.set(fix, 300, status="in_progress")  # started while blocked: goes red
     c.close(mtime_ago=5)
 
 
