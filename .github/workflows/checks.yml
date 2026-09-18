@@ -49,7 +49,12 @@ jobs:
             # A branch's first push reports an all-zero predecessor, and a force
             # push reports one that no longer exists. Either way there is
             # nothing to compare against, so check the one commit.
+          elif git rev-parse -q --verify "${{ github.sha }}^" >/dev/null; then
             echo "range=${{ github.sha }}~1..${{ github.sha }}" >> "$GITHUB_OUTPUT"
+          else
+            # The very first commit in a repository has no parent, so no
+            # range can name it; both tools also accept a single commit.
+            echo "range=${{ github.sha }}" >> "$GITHUB_OUTPUT"
           fi
       - uses: crate-ci/committed@faeed42f2e10c244533a01525f13c4d8b6ce383f # v1.1.11
         with:
