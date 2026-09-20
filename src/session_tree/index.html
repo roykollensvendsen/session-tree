@@ -111,6 +111,18 @@
       padding:1px 7px;font-size:10px;cursor:pointer;white-space:nowrap}
   .rbtn:hover{color:var(--ink);border-color:#3d4a5c}
   .rbtn.on{color:#d9c9f5;border-color:#9370db;background:rgba(147,112,219,.16)}
+  .agent{font-size:9.5px;letter-spacing:.4px;text-transform:uppercase;padding:1.5px 6px;
+      border-radius:99px;border:1px solid var(--line);color:var(--dim)}
+  .agent.codex{color:#9fe0c8;border-color:rgba(72,199,158,.45);background:rgba(72,199,158,.11)}
+  .agent.claude{color:#d3b9a0;border-color:rgba(214,150,99,.42);background:rgba(214,150,99,.1)}
+  .turns{display:flex;gap:2px;align-items:stretch;height:26px;margin:2px 0 7px}
+  .turns i{flex:1 1 auto;border-radius:3px;min-width:5px;cursor:default;transition:opacity .15s}
+  .turns i:hover{filter:brightness(1.35)}
+  .tn-completed{background:rgba(34,197,94,.55)}
+  .tn-failed{background:rgba(239,68,68,.75)}
+  .tn-interrupted{background:rgba(234,179,8,.6)}
+  .tn-in_progress{background:rgba(59,130,246,.8);animation:pulse 1.6s ease-in-out infinite}
+  .why{font-size:10.5px;color:var(--faint);font-style:italic;padding:2px 0 8px}
   .empty{color:var(--faint);font-size:11px;padding:8px 2px;font-style:italic}
 </style>
 </head>
@@ -135,6 +147,7 @@
 const COLOR={pending:'#49556a',waiting:'#49556a',in_progress:'#3b82f6',
              completed:'#22c55e',stalled:'#eab308',blocked:'#ef4444',abandoned:'#3a4150'};
 const LABEL={pending:'venter',waiting:'venter på andre',in_progress:'jobber nå',
+             failed:'feilet',interrupted:'avbrutt',
              completed:'ferdig',stalled:'står stille',blocked:'blokkert',abandoned:'forkastet'};
 
 const PENDING=[];   // graphs waiting for their card to have a real width
@@ -142,6 +155,9 @@ const REPLAY=new Map();   // sessionId -> {t, playing, timer}
 let LAST=null;            // last payload, so replay can re-render without the stream
 
 const EVK={prompt:'du sa',create:'ny node','status:in_progress':'startet',
+           files:'endret filer','command:failed':'kommando feilet',
+           'turn:completed':'tur fullført','turn:failed':'tur feilet',
+           'turn:interrupted':'tur avbrutt','turn:in_progress':'tur startet',
            'status:completed':'ferdig','status:pending':'satt på vent',
            'status:abandoned':'forkastet'};
 
@@ -423,12 +439,47 @@ function replayPanel(s,rp){
   return box;
 }
 
+/* Codex records turns, not tasks. Drawing the turns as a graph would be a
+   list wearing a graph's clothes, so they get a band along time instead. */
+function turnStrip(s, until){
+  const box=document.createElement('div');
+  const turns=(s.turns||[]).filter(t=>!t.startedMs||t.startedMs<=until);
+  if(!turns.length){
+    box.innerHTML='<div class="why">ingen turer før dette punktet</div>';
+    return box;
+  }
+  const strip=document.createElement('div'); strip.className='turns';
+  const longest=Math.max(...turns.map(t=>t.durationMs||0),1);
+  turns.forEach(t=>{
+    const seg=document.createElement('i');
+    seg.className='tn-'+(t.status||'completed');
+    seg.style.flexGrow=String(Math.max(0.15,(t.durationMs||0)/longest));
+    seg.addEventListener('mousemove',e=>{
+      const files=(t.files||[]).length?`<div class="row">rørte ${esc([...new Set(t.files)].join(', '))}</div>`:'';
+      const bad=(t.failures||[]).length?`<div class="row" style="color:#f0a8a8">feilet: ${esc(t.failures[0])}</div>`:'';
+      showTip(e,`<h4>tur · ${LABEL[t.status]||t.status}</h4>
+        <div style="color:var(--dim);font-size:11px">${t.durationMs!=null?dur(t.durationMs):'—'}${t.startedMs?' · '+clock(t.startedMs):''}</div>${files}${bad}`);
+    });
+    seg.addEventListener('mouseleave',hideTip);
+    strip.appendChild(seg);
+  });
+  box.appendChild(strip);
+  const done=turns.filter(t=>t.status==='completed').length;
+  const note=document.createElement('div');
+  note.className='why';
+  note.textContent=`${turns.length} turer, ${done} fullført — Codex fører ingen oppgaveliste, så det er ingen graf å tegne`;
+  box.appendChild(note);
+  return box;
+}
+
 function renderSession(s){
   const rp=REPLAY.get(s.sessionId);
   const goals=rp?stateAt(s,rp.t):s.goals;
   const el=document.createElement('section');
-  // an idle session with nothing to draw folds itself away until asked for
-  const empty=!s.goals.length&&!s.active;
+  // an idle session with nothing to draw folds itself away until asked for.
+  // Codex sessions never have goals, so turns count as something to draw --
+  // otherwise every finished Codex thread would hide its own content.
+  const empty=!goals.length&&!(s.turns||[]).length&&!s.active;
   const shut=collapsed.has(s.sessionId)||(empty&&!opened.has(s.sessionId));
   el.className='sess'+(s.active?'':' idle')+(shut?' closed':'')+(rp?' frozen':'');
 
@@ -441,6 +492,7 @@ function renderSession(s){
     <span class="sname">${esc(s.name||s.firstPrompt||'(uten navn)')}</span>
     <span class="spath">${esc(s.project)}${s.branch?' · '+esc(s.branch):''}</span>
     <span style="flex:1"></span>
+    <span class="agent ${s.agent||'claude'}">${s.agent||'claude'}</span>
     ${(s.events&&s.events.length>1)?`<button class="rbtn${rp?' on':''}">⏱ replay</button>`:''}`;
   const rbtn=head.querySelector('.rbtn');
   if(rbtn) rbtn.onclick=e=>{
@@ -474,10 +526,20 @@ function renderSession(s){
     now.innerHTML=`⏸ <b>#${blocked.id}</b> ${esc(blocked.subject)} — blokkert av #${(blocked.waitingOn||[]).join(', #')}`; }
   else if(stalled){ now.className='now stall';
     now.innerHTML=`⚠ <b>#${stalled.id}</b> ${esc(stalled.subject)} — ingen aktivitet på ${ago(s.quietSeconds)}`; }
+  else if((s.turns||[]).length){
+    const run=(s.turns||[]).find(t=>t.status==='in_progress');
+    const fail=(s.turns||[]).filter(t=>t.status==='failed').length;
+    now.className=run?'now':(fail?'now stall':'now none');
+    now.innerHTML=run?`▶ tur pågår${run.durationMs!=null?` · ${dur(run.durationMs)}`:''}`
+      :(fail?`⚠ ${fail} tur${fail>1?'er':''} feilet`:`${s.turns.length} turer, ingen pågår`);
+  }
   else { now.className='now none';
     now.textContent=all.length?'ingen node under arbeid':'ingen oppgavegraf i denne økta';}
   body.appendChild(now);
 
+  if(!goals.length && (s.turns||[]).length){
+    body.appendChild(turnStrip(s, rp?rp.t:Infinity));
+  }
   if(goals.length){
     const wrap=document.createElement('div'); wrap.className='goals';
     goals.forEach(g=>{
