@@ -14,13 +14,14 @@ import urllib.error
 import urllib.request
 from pathlib import Path
 
+from session_tree.install_codex import install as install_codex
 from session_tree.state import build
 from session_tree.summary import render_summary
 
 DEFAULT_PORT = 8787
 STARTUP_TIMEOUT = 10.0
 BROWSERS = ("firefox", "chromium", "google-chrome", "google-chrome-stable")
-COMMANDS = ("open", "start", "stop", "restart", "status")
+COMMANDS = ("open", "start", "stop", "restart", "status", "install-codex-hook")
 
 
 def url(port: int) -> str:
@@ -114,6 +115,14 @@ def status(port: int) -> int:
     return 0
 
 
+def install_codex_hook(port: int) -> int:  # noqa: ARG001 - dispatched with the others
+    """Set Codex up so its plans reach the view, and say what changed."""
+    for line in install_codex():
+        sys.stdout.write("  " + line + "\n")
+    sys.stdout.write("restart Codex for the hook to take effect\n")
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     """Parse arguments and dispatch. Returns a process exit code."""
     parser = argparse.ArgumentParser(prog="session-tree", description=__doc__)
@@ -135,6 +144,7 @@ def main(argv: list[str] | None = None) -> int:
         "start": start,
         "stop": stop,
         "status": status,
+        "install-codex-hook": install_codex_hook,
     }[args.action](args.port)
 
 

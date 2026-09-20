@@ -65,17 +65,36 @@ Transcripts reach tens of megabytes, so each is read forward from a remembered
 byte offset and never re-parsed. A change reaches an open window in about a
 hundredth of a second.
 
-## Codex has no task list
+## Codex
 
-Codex records turns, not tasks: there is a `thread_goals` table and it stays
-empty, and no item type is a plan. So a Codex session is drawn as a band of
-turns along time — coloured by status, sized by duration, and carrying which
-files each turn changed and which commands exited non-zero — and **no graph at
-all**, because there is nothing to make one from.
+Codex records turns, not tasks. A thread is drawn as a band of turns along time
+— coloured by status, sized by duration, carrying which files each turn changed
+and which commands exited non-zero.
 
-Turning the turns into nodes would be a list wearing a graph's clothes. A
-picture that is wrong is worse than no picture, since it is the one being
-trusted.
+It does have a checklist tool, `update_plan`, but three things stand in the way
+and none of them is on by default: the tool's config defaults to off, the call
+is never kept as a thread item so it exists only inside the rollout file, and
+the checklist has no edges — each step is a string and a status, with no
+identifier and nothing to point at.
+
+<!-- not run: writes into ~/.codex and needs Codex restarted afterwards -->
+```bash
+session-tree install-codex-hook
+```
+
+That turns the tool on, registers a `PostToolUse` hook that catches every plan
+as it is written, and adds a note to `AGENTS.md` asking the model to put the
+dependencies in the explanation:
+
+    deps: 2<-1; 3<-2; 4<-2
+
+Nothing is overwritten — an existing file is backed up first, and a block that
+is already there is left alone.
+
+Those edges are text a model wrote, not a field anything validated, so an edge
+pointing at a step that does not exist is **shown on the card** rather than
+quietly dropped. A plan with no dependencies at all says so too, because
+listing steps in an order is not the same as one waiting for another.
 
 ## What is not automatic
 

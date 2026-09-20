@@ -23,6 +23,8 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
+from session_tree.codex_plan import goals_from_plan, read_plan
+
 CODEX_DIR = Path.home() / ".codex"
 IDLE_SECONDS = 2 * 60
 #: Turn statuses Codex writes, mapped to what the view calls them.
@@ -181,7 +183,11 @@ def _turn_events(thread: _Thread) -> None:
                 thread.events.append(event)
 
 
-def build_sessions(now: float | None = None, root: Path | None = None) -> list[dict[str, Any]]:
+def build_sessions(
+    now: float | None = None,
+    root: Path | None = None,
+    plan_dir: Path | None = None,
+) -> list[dict[str, Any]]:
     """Return every Codex thread, in the shape the view already reads."""
     now = now or time.time()
     base = root or CODEX_DIR
@@ -225,6 +231,8 @@ def build_sessions(now: float | None = None, root: Path | None = None) -> list[d
         thread.turns.sort(key=lambda t: t["startedMs"] or 0)
         events = sorted(thread.events, key=lambda e: e["at"])
         quiet = now - thread.updated / 1000 if thread.updated else 1e9
+        plan = read_plan(thread.id, plan_dir)
+        goals = goals_from_plan(plan) if plan else []
         sessions.append(
             {
                 "sessionId": thread.id,
@@ -246,8 +254,10 @@ def build_sessions(now: float | None = None, root: Path | None = None) -> list[d
                 "turnCount": len(thread.turns),
                 "firstPrompt": thread.first_prompt,
                 # Codex keeps no task list, so there is nothing to draw here.
-                "goals": [],
-                "taskCount": 0,
+                # Codex keeps no task list of its own. If the plan hook caught an
+                # `update_plan` call, that checklist is drawn instead.
+                "goals": goals,
+                "taskCount": sum(len(g["nodes"]) for g in goals),
                 "events": events,
                 "spanStart": min((e["at"] for e in events), default=None) or thread.created or None,
                 "spanEnd": thread.updated or None,

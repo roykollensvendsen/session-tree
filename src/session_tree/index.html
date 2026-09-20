@@ -123,6 +123,8 @@
   .tn-interrupted{background:rgba(234,179,8,.6)}
   .tn-in_progress{background:rgba(59,130,246,.8);animation:pulse 1.6s ease-in-out infinite}
   .why{font-size:10.5px;color:var(--faint);font-style:italic;padding:2px 0 8px}
+  .broken{font-size:10.5px;color:#f0c98a;background:rgba(234,179,8,.1);
+      border-left:2px solid var(--stall);border-radius:0 4px 4px 0;padding:4px 8px;margin:0 0 7px}
   .empty{color:var(--faint);font-size:11px;padding:8px 2px;font-style:italic}
 </style>
 </head>
@@ -548,7 +550,9 @@ function renderSession(s){
       const card=document.createElement('div'); card.className='goal';
       card.innerHTML=`<div class="gtitle">${esc(g.title)}</div>
         <div class="gmeta">${done}/${live.length} ferdig${g.nodes.length>live.length?` · ${g.nodes.length-live.length} forkastet`:''}</div>
-        <div class="bar"><b style="width:${live.length?done/live.length*100:0}%"></b></div>`;
+        <div class="bar"><b style="width:${live.length?done/live.length*100:0}%"></b></div>
+        ${(g.danglingEdges||[]).length?`<div class="broken">⚠ peker på steg som ikke finnes: ${esc(g.danglingEdges.join(', '))}</div>`:''}
+        ${(g.hasEdges===false)?`<div class="why">planen har ingen avhengigheter oppgitt — rekkefølgen her er bare listerekkefølgen</div>`:''}`;
       wrap.appendChild(card);
       PENDING.push({card:card,goal:g,sess:s});
     });

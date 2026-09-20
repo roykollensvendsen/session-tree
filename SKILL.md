@@ -54,6 +54,13 @@ changed, and any command that exited non-zero. That absence is stated on the
 card, so an empty graph area reads as a property of the source rather than as
 nothing having happened.
 
+To draw a Codex thread's plan as a graph rather than a band of turns, run
+`session-tree install-codex-hook` once. It enables `update_plan` (off by
+default), registers a `PostToolUse` hook that catches each plan, and asks the
+model in `AGENTS.md` to write `deps: 2<-1; 3<-2` in the explanation. Those edges
+are free text, so one pointing at a missing step is shown on the card instead of
+being dropped.
+
 ## The one thing that is not automatic
 
 **The graph is your decomposition. Nothing else supplies it.** A session that
