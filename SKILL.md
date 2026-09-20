@@ -61,6 +61,10 @@ model in `AGENTS.md` to write `deps: 2<-1; 3<-2` in the explanation. Those edges
 are free text, so one pointing at a missing step is shown on the card instead of
 being dropped.
 
+Codex will not run the hook until it is trusted: start `codex` once after
+installing and approve it when asked. Until then nothing is captured and
+nothing says why.
+
 ## The one thing that is not automatic
 
 **The graph is your decomposition. Nothing else supplies it.** A session that
