@@ -16,6 +16,7 @@ if TYPE_CHECKING:
     from pathlib import Path
 
 from session_tree.codex import build_sessions
+from session_tree.summary import render_summary
 
 NOW_MS = 1_789_000_000_000
 
@@ -226,3 +227,10 @@ def test_a_thread_with_no_history_still_appears(tmp_path: Path) -> None:
     session = only(build_sessions(root=tmp_path))
     assert session["turns"] == []
     assert session["events"] == []
+
+
+def test_the_terminal_says_what_a_codex_thread_did(codex_home: Path) -> None:
+    """Counting tasks a Codex thread cannot have would read as nothing happening."""
+    text = render_summary({"sessions": build_sessions(root=codex_home)})
+    assert "turns" in text
+    assert "0/0" not in text
