@@ -9,6 +9,11 @@ Three things have to be true, and none of them is on by default:
 * The checklist has no edges, so the dependencies have to be written by the
   model into text, which is what the note in AGENTS.md asks it to do.
 
+Codex will not run a newly configured hook until it has been trusted, which is
+a review prompt on the next interactive start. Until then the plan is simply
+never captured, with nothing said about why -- so this prints the step rather
+than leaving it to be discovered.
+
 Nothing here overwrites: an existing file is backed up first, and a block that
 is already present is left alone and reported.
 """
@@ -86,4 +91,9 @@ def install(codex_dir: Path | None = None, hook: Path | None = None) -> list[str
     ]
     if not hook_path.exists():
         done.append(f"MISSING {hook_path} -- the hook will not run")
+    done.append("")
+    done.append("Codex will not run this hook until it is trusted.")
+    done.append("Start `codex` once and approve it when it asks; the answer is")
+    done.append("remembered. Without that the plan is never captured and")
+    done.append("nothing says why.")
     return done

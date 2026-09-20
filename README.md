@@ -91,6 +91,11 @@ dependencies in the explanation:
 Nothing is overwritten — an existing file is backed up first, and a block that
 is already there is left alone.
 
+**Codex will not run a newly configured hook until it is trusted.** Start
+`codex` once afterwards and approve it when asked; the answer is remembered.
+Until then the plan is never captured and nothing says why. For automation,
+`codex exec --dangerously-bypass-hook-trust` skips the check for one run.
+
 Those edges are text a model wrote, not a field anything validated, so an edge
 pointing at a step that does not exist is **shown on the card** rather than
 quietly dropped. A plan with no dependencies at all says so too, because
