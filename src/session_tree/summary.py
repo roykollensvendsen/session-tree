@@ -18,9 +18,17 @@ def render_summary(state: dict[str, Any]) -> str:
         live = [n for n in nodes if n["view"] != "abandoned"]
         done = len([n for n in live if n["view"] == "completed"])
         mark = "ACTIVE" if session["active"] else ("alive " if session["alive"] else "ended ")
+        # Codex keeps no task list, so "0/0 done" would read as nothing having
+        # happened. Its turns are what it did record.
+        turns = session.get("turns") or []
+        if not live and turns:
+            finished = len([t for t in turns if t.get("status") == "completed"])
+            tally = f"{finished:>2}/{len(turns):<2} turns"
+        else:
+            tally = f"{done:>2}/{len(live):<2} done "
         lines.append(
             f"  [{mark}] {session['project'][:PROJECT_WIDTH]:<{PROJECT_WIDTH}} "
-            f"{done:>2}/{len(live):<2} done  {(session['name'] or '')[:NAME_WIDTH]}",
+            f"{tally} {(session['name'] or '')[:NAME_WIDTH]}",
         )
         for node in nodes:
             if node["view"] in MARK:
