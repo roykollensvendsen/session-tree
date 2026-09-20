@@ -1,8 +1,8 @@
 # session-tree
 
-A live picture of what Claude Code is doing — in this session and in every
-other session on your machine, across every project — in its own window, beside
-the terminal.
+A live picture of what your coding agents are doing — Claude Code and Codex, in
+this session and in every other one on your machine, across every project — in
+its own window, beside the terminal.
 
 ![Three sessions, each drawn as a task graph](assets/screenshot.png)
 
@@ -43,13 +43,18 @@ not running (start it with: session-tree start)
 
 ## How it works
 
-Two files Claude Code already maintains, so **no hook has to be installed and
-nothing can be forgotten**:
+What each agent already writes, so **no hook has to be installed and nothing
+can be forgotten**:
 
 | Source | What it gives |
 |---|---|
-| `~/.claude/sessions/<pid>.json` | every live session: id, directory, name, status |
-| `~/.claude/projects/<slug>/<session>.jsonl` | the transcript, appended as it happens |
+| `~/.claude/sessions/<pid>.json` | every live Claude Code session: id, directory, name, status |
+| `~/.claude/projects/<slug>/<session>.jsonl` | its transcript, appended as it happens |
+| `~/.codex/state_*.sqlite` | every Codex thread: id, directory, title, timestamps |
+| `~/.codex/thread_history_*.sqlite` | its turns, with status and duration, and what each one changed |
+
+The Codex filenames carry a schema version that moves when it upgrades, so the
+newest match is read rather than a fixed name.
 
 `TaskCreate` and `TaskUpdate` calls in the transcript replay into nodes and
 edges. Because the source is the transcript rather than a hook, the view works
@@ -60,11 +65,23 @@ Transcripts reach tens of megabytes, so each is read forward from a remembered
 byte offset and never re-parsed. A change reaches an open window in about a
 hundredth of a second.
 
+## Codex has no task list
+
+Codex records turns, not tasks: there is a `thread_goals` table and it stays
+empty, and no item type is a plan. So a Codex session is drawn as a band of
+turns along time — coloured by status, sized by duration, and carrying which
+files each turn changed and which commands exited non-zero — and **no graph at
+all**, because there is nothing to make one from.
+
+Turning the turns into nodes would be a list wearing a graph's clothes. A
+picture that is wrong is worse than no picture, since it is the one being
+trusted.
+
 ## What is not automatic
 
-**The graph is the agent's decomposition. Nothing else supplies it.** A session
-that never calls `TaskCreate` shows up as a card with no picture — correctly,
-because nothing knows what it was trying to do.
+**The graph is the agent's decomposition. Nothing else supplies it.** A Claude
+Code session that never calls `TaskCreate` shows up as a card with no picture —
+correctly, because nothing knows what it was trying to do.
 
 The accompanying skill (`SKILL.md`, for `~/.claude/skills/`) is what teaches the
 agent to decompose before starting, wire real `blockedBy` dependencies, put

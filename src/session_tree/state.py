@@ -18,10 +18,13 @@ from __future__ import annotations
 import json
 import re
 import subprocess
+import sys
 import time
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Literal, TypedDict
+
+from session_tree import codex
 
 HOME = Path.home()
 SESSIONS_DIR = HOME / ".claude" / "sessions"
@@ -477,6 +480,7 @@ def _describe(info: dict[str, Any], reader: TranscriptReader, mtime: float, now:
     events = sorted(reader.events, key=lambda e: e["at"])
     return {
         "sessionId": info["sessionId"],
+        "agent": "claude",
         "pid": info.get("pid"),
         "name": info.get("name") or "",
         "cwd": cwd,
@@ -490,10 +494,12 @@ def _describe(info: dict[str, Any], reader: TranscriptReader, mtime: float, now:
         "quietSeconds": round(quiet),
         "startedAt": info.get("startedAt"),
         "lastActivity": reader.last_activity,
-        "turns": reader.turns,
+        "promptTurns": reader.turns,
         "firstPrompt": reader.first_prompt,
         "goals": _components(nodes),
         "taskCount": len(nodes),
+        "turns": [],
+        "turnCount": 0,
         "events": events,
         "spanStart": min((e["at"] for e in events), default=None) or info.get("startedAt"),
         "spanEnd": int(mtime * 1000) if mtime else None,
@@ -501,7 +507,13 @@ def _describe(info: dict[str, Any], reader: TranscriptReader, mtime: float, now:
 
 
 def build(now: float | None = None) -> dict[str, Any]:
-    """Return the current picture of every session, ready to serialise."""
+    """Return the current picture of every session, whichever agent ran it.
+
+    Claude Code and Codex are read from different places and do not carry the
+    same things: only one of them keeps a task list. Each session says which
+    agent it came from, and the view shows what that agent actually recorded
+    rather than a common shape neither of them fills.
+    """
     now = now or time.time()
     sessions: list[dict[str, Any]] = []
     seen: set[str] = set()
@@ -523,6 +535,11 @@ def build(now: float | None = None) -> dict[str, Any]:
         except OSError:
             mtime = 0.0
         sessions.append(_describe(info, reader, mtime, now))
+
+    try:
+        sessions.extend(codex.build_sessions(now))
+    except Exception as error:  # noqa: BLE001 - one agent must not hide the other
+        sys.stderr.write(f"codex: {error!r}\n")
 
     sessions.sort(key=lambda s: (not s["active"], not s["alive"], -(s.get("startedAt") or 0)))
     return {"now": now, "sessions": sessions}

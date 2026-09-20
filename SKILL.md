@@ -1,8 +1,9 @@
 ---
 name: session-tree
 description: >-
-  A live picture, in its own window, of what Claude is doing right now — in this
-  session and in every other session on this machine, across all projects. The
+  A live picture, in its own window, of what your coding agents are doing right
+  now — Claude Code and Codex, in this session and in every other one on this
+  machine, across all projects. The
   work decomposes into a task graph whose nodes go blue while worked, green when
   done, amber when nothing has moved, red when blocked, and struck through when
   a branch was tried and dropped. It also replays: a slider walks a session back
@@ -42,6 +43,16 @@ Because the source is the transcript, the view also works backwards: a session
 that ran last week still draws, and a session that was never told about this
 skill still appears. Transcripts reach tens of megabytes, so the reader keeps a
 byte offset per file and never re-reads one.
+
+## Codex
+
+Codex threads are read from `~/.codex/state_*.sqlite` and
+`~/.codex/thread_history_*.sqlite`, and appear beside the Claude Code ones with
+a `codex` badge. Codex keeps no task list, so those sessions show a band of
+turns along time instead of a graph: status, duration, the files each turn
+changed, and any command that exited non-zero. That absence is stated on the
+card, so an empty graph area reads as a property of the source rather than as
+nothing having happened.
 
 ## The one thing that is not automatic
 
