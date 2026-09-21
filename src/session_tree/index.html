@@ -320,6 +320,12 @@ function renderGoal(goal,sess,width){
     if(n.view==='completed')label.style.fill='#b7e6c6';
     g.appendChild(label);
 
+    if((n.failures||[]).length){
+      const warn=document.createElementNS(NS,'text');
+      warn.setAttribute('x',p.x+p.w-24);warn.setAttribute('y',p.y+13);
+      warn.setAttribute('class','id');warn.style.fill='#ef8a8a';warn.textContent='!';
+      g.appendChild(warn);
+    }
     if(n.view==='completed'){
       const ok=document.createElementNS(NS,'text');
       ok.setAttribute('x',p.x+p.w-13);ok.setAttribute('y',p.y+13);
@@ -332,9 +338,14 @@ function renderGoal(goal,sess,width){
         `<div class="row">venter på #${n.waitingOn.join(', #')}</div>`:'';
       const time=n.durationMs!=null?
         `<div class="row">${n.status==='in_progress'?'holdt på i ':'tok '}${dur(n.durationMs)}</div>`:'';
+      // what actually came out of the node, not just that it went green
+      const files=(n.files||[]).length?
+        `<div class="row">rørte ${esc([...new Set(n.files)].slice(0,8).join(', '))}${n.files.length>8?' …':''}</div>`:'';
+      const bad=(n.failures||[]).length?
+        `<div class="row" style="color:#f0a8a8">${n.failures.length} kommando${n.failures.length>1?'er':''} feilet · ${esc(n.failures[0])}</div>`:'';
       showTip(e,`<h4>#${n.id} · ${esc(n.subject)}</h4>
         <div style="color:${COLOR[n.view]};font-size:11px;font-weight:600">${LABEL[n.view]||n.view}</div>
-        ${n.description?`<p>${esc(n.description)}</p>`:''}${waiting}${time}
+        ${n.description?`<p>${esc(n.description)}</p>`:''}${waiting}${time}${files}${bad}
         <div class="row">${esc(sess.project)}${sess.branch?' · '+esc(sess.branch):''}</div>`);
       svg.querySelectorAll('.node').forEach(o=>o.classList.toggle('dim',o.dataset.id!==n.id &&
         !(n.blockedBy||[]).includes(o.dataset.id) && !(n.blocks||[]).includes(o.dataset.id)));
@@ -552,7 +563,7 @@ function renderSession(s){
         <div class="gmeta">${done}/${live.length} ferdig${g.nodes.length>live.length?` · ${g.nodes.length-live.length} forkastet`:''}</div>
         <div class="bar"><b style="width:${live.length?done/live.length*100:0}%"></b></div>
         ${(g.danglingEdges||[]).length?`<div class="broken">⚠ peker på steg som ikke finnes: ${esc(g.danglingEdges.join(', '))}</div>`:''}
-        ${(g.hasEdges===false)?`<div class="why">planen har ingen avhengigheter oppgitt — rekkefølgen her er bare listerekkefølgen</div>`:''}`;
+        ${(g.hasEdges===false)?`<div class="why">ingen avhengigheter mellom disse — rekkefølgen er listerekkefølgen, ikke noe som venter på noe</div>`:''}`;
       wrap.appendChild(card);
       PENDING.push({card:card,goal:g,sess:s});
     });
