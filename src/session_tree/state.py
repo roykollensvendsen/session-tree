@@ -86,6 +86,7 @@ class Node(TypedDict, total=False):
     durationMs: int | None
     files: list[str]
     failures: list[str]
+    agents: list[dict[str, Any]]
 
 
 def epoch_ms(iso: str | None) -> int | None:
@@ -148,6 +149,8 @@ class TranscriptReader:
         #: a task, so this is "while the node was active", nothing stronger.
         self.active_node: str | None = None
         self.pending_bash: dict[str, str] = {}
+        #: Agent call id -> the node it was started from, and when.
+        self.spawns: dict[str, dict[str, Any]] = {}
 
     def read(self) -> None:
         """Consume whatever has been appended since the last call."""
@@ -192,6 +195,7 @@ class TranscriptReader:
                 "ended": None,
                 "files": [],
                 "failures": [],
+                "agents": [],
             }
         return self.tasks[task_id]
 
@@ -301,6 +305,15 @@ class TranscriptReader:
             if isinstance(command, str):
                 self.pending_bash[use_id] = command[:120]
             return
+        if name == "Agent":
+            self.spawns[use_id] = {
+                "node": self.active_node,
+                "description": str(payload.get("description") or "")[:80],
+                "agentType": str(payload.get("subagent_type") or ""),
+                "startedMs": None,
+                "endedMs": None,
+            }
+            return
         if name not in ("Edit", "Write", "NotebookEdit") or self.active_node is None:
             return
         path = payload.get("file_path") or payload.get("notebook_path")
@@ -318,6 +331,9 @@ class TranscriptReader:
         if stamp:
             self.last_activity = (stamp, name)
         self._note_work(name, block.get("input") or {}, str(block.get("id", "")))
+        spawn = self.spawns.get(str(block.get("id", "")))
+        if spawn is not None:
+            spawn["startedMs"] = epoch_ms(stamp)
         if name == "TaskCreate":
             self.pending_creates[block.get("id", "")] = (block.get("input") or {}, stamp)
         elif name == "TaskUpdate":
@@ -325,6 +341,9 @@ class TranscriptReader:
 
     def _consume_result(self, block: dict[str, Any]) -> None:
         use_id = block.get("tool_use_id")
+        spawn = self.spawns.get(str(use_id))
+        if spawn is not None:
+            spawn["endedMs"] = True  # a result means the agent has finished
         command = self.pending_bash.pop(str(use_id), None)
         if command and block.get("is_error") and self.active_node in self.tasks:
             failures = self.tasks[self.active_node]["failures"]
@@ -372,6 +391,62 @@ def _transcript_for(session_id: str) -> Path | None:
         if candidate.exists():
             return candidate
     return None
+
+
+def _subagent_meta(transcript: Path) -> list[dict[str, Any]]:
+    """Every subagent this session spawned, from the files beside its transcript.
+
+    Claude Code writes `<session>/subagents/agent-*.meta.json` carrying the
+    agent's type, a human description and the `toolUseId` of the call that
+    started it -- which is what ties it back to a node.
+    """
+    folder = transcript.with_suffix("") / "subagents"
+    if not folder.is_dir():
+        return []
+    found = []
+    for meta in sorted(folder.glob("*.meta.json")):
+        loaded = _read_json(meta)
+        if loaded:
+            found.append(loaded)
+    return found
+
+
+def _attach_agents(
+    nodes: list[Node],
+    spawns: dict[str, dict[str, Any]],
+    metas: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    """Hang each subagent on the node it came from; return the ones with none.
+
+    A panel is often spawned before the work is decomposed at all -- in a review
+    session the seats ran an hour before the first task existed. Those agents
+    belong to the session, not to a node, and forcing them under whichever node
+    happened to be open would invent the tie.
+    """
+    by_id = {n["id"]: n for n in nodes}
+    by_use = {str(m.get("toolUseId")): m for m in metas if m.get("toolUseId")}
+    # The nodes outlive each poll, so start from empty or every pass appends
+    # the same agents again.
+    for each in nodes:
+        each["agents"] = []
+    loose: list[dict[str, Any]] = []
+    for use_id, spawn in spawns.items():
+        meta = by_use.get(use_id, {})
+        entry = {
+            "description": str(meta.get("description") or spawn["description"] or "agent"),
+            "agentType": str(meta.get("agentType") or spawn["agentType"] or ""),
+            "shape": str(meta.get("requestShape") or ""),
+            "depth": meta.get("spawnDepth"),
+            "startedMs": spawn.get("startedMs"),
+            # A result came back for the call, so the agent is no longer running.
+            "running": not spawn.get("endedMs"),
+        }
+        node = by_id.get(str(spawn.get("node")))
+        if node is None:
+            loose.append(entry)
+        else:
+            node["agents"].append(entry)
+    return loose
 
 
 def _alive(pid: int | str | None) -> bool:
@@ -521,9 +596,28 @@ def _sessions_on_disk() -> list[dict[str, Any]]:
     return found
 
 
+def _attention(declared: str, quiet: float, *, alive: bool) -> str:
+    """What the session needs from a person, if anything.
+
+    The register says busy or idle; the transcript's age says whether anything
+    is actually happening. Together they separate a session that is working
+    from one that is waiting on an answer, and both from one that claims to be
+    busy while nothing has been written for a long time -- the only one of the
+    three where going in and looking is worth doing.
+    """
+    if not alive:
+        return "ended"
+    if declared == "idle":
+        return "waiting"
+    if declared == "busy" and quiet > STALL_SECONDS:
+        return "stalled"
+    return "working"
+
+
 def _describe(info: dict[str, Any], reader: TranscriptReader, mtime: float, now: float) -> dict[str, Any]:
     quiet = now - mtime
     nodes = list(reader.tasks.values())
+    loose_agents = _attach_agents(nodes, reader.spawns, _subagent_meta(reader.path))
     _apply_views(nodes, quiet, now)
     cwd = info.get("cwd") or ""
     events = sorted(reader.events, key=lambda e: e["at"])
@@ -538,6 +632,10 @@ def _describe(info: dict[str, Any], reader: TranscriptReader, mtime: float, now:
         "kind": info.get("kind") or "",
         "jobId": info.get("jobId") or "",
         "declaredStatus": info.get("status") or "",
+        "attention": _attention(str(info.get("status") or ""), quiet, alive=_alive(info.get("pid", -1))),
+        "statusAgeSeconds": round(now - (info.get("statusUpdatedAt") or 0) / 1000)
+        if info.get("statusUpdatedAt")
+        else None,
         "alive": _alive(info.get("pid", -1)),
         "active": _alive(info.get("pid", -1)) and quiet < IDLE_SECONDS,
         "quietSeconds": round(quiet),
@@ -549,6 +647,8 @@ def _describe(info: dict[str, Any], reader: TranscriptReader, mtime: float, now:
         "taskCount": len(nodes),
         "turns": [],
         "turnCount": 0,
+        # Agents nobody's node owned: spawned before the work was decomposed.
+        "agents": loose_agents,
         "events": events,
         "spanStart": min((e["at"] for e in events), default=None) or info.get("startedAt"),
         "spanEnd": int(mtime * 1000) if mtime else None,

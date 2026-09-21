@@ -116,6 +116,23 @@ One state is inferred rather than reported: a node in progress whose transcript
 has been silent for fifteen minutes goes amber on its own. It is the only state
 that cannot be faked by forgetting to update a task, which is why it is there.
 
+## Subagents, and what a session needs from you
+
+A node that spawned subagents carries them inside it, one line each, blue while
+running and green when done — so a step that fanned out into a six-seat review
+panel looks like one, without being opened.
+
+Agents started before the work was decomposed at all belong to the session
+rather than to a node. A review panel usually is one: the seats run, and the
+tasks are created from what they found. Hanging them under whichever node
+happened to be open would invent a tie that is not there.
+
+Each session header says what it needs from a person. `venter på deg` means the
+agent is idle with the process alive — it has answered and is waiting. `står
+stille` means the session claims to be busy while nothing has been written for
+fifteen minutes, which is the one case where going in and looking is worth
+doing.
+
 ## Replay
 
 `⏱ replay` on a session header turns the graph into a recording of itself. The

@@ -123,6 +123,13 @@
   .tn-interrupted{background:rgba(234,179,8,.6)}
   .tn-in_progress{background:rgba(59,130,246,.8);animation:pulse 1.6s ease-in-out infinite}
   .why{font-size:10.5px;color:var(--faint);font-style:italic;padding:2px 0 8px}
+  .att{font-size:10px;padding:1.5px 7px;border-radius:99px;white-space:nowrap;font-weight:600}
+  .att.waiting{color:#0e1116;background:#d8b4fe}
+  .att.stalled{color:#0e1116;background:var(--stall);animation:nudge 2s infinite}
+  .agentrow{font-size:10.5px;color:var(--dim);padding:5px 10px 7px;margin:0 0 8px;
+      border-left:2px solid #6b7a90;background:rgba(255,255,255,.028);border-radius:0 5px 5px 0}
+  .agentrow b{color:#cbd6e6;font-weight:600}
+  .agentrow .run{color:#8fc7ff}
   .broken{font-size:10.5px;color:#f0c98a;background:rgba(234,179,8,.1);
       border-left:2px solid var(--stall);border-radius:0 4px 4px 0;padding:4px 8px;margin:0 0 7px}
   .empty{color:var(--faint);font-size:11px;padding:8px 2px;font-style:italic}
@@ -231,9 +238,14 @@ function layout(goal,width){
   nodes.forEach(n=>{ const d=depth[n.id]||0; if(!bands.has(d))bands.set(d,[]); bands.get(d).push(n); });
   const ds=[...bands.keys()].sort((a,b)=>a-b);
   const W=Math.max(300,width||330);
-  const BH=52, NH=30, pos={};
+  const NH=30, AGENT_H=12, pos={};
+  // a node carrying subagents grows to make room for them
+  const heightOf=n=>NH+((n.agents||[]).length?(n.agents.length*AGENT_H+5):0);
+  let y=16;
+  const bandTop=[];
   ds.forEach((d,bi)=>{
     const row=bands.get(d);
+    bandTop[bi]=y;
     // pull each node toward the average x of what it depends on, so the wires
     // cross as little as possible without a real layered layout
     row.forEach(n=>{
@@ -242,12 +254,14 @@ function layout(goal,width){
     });
     row.sort((a,b)=>a._h-b._h);
     const gap=W/row.length;
+    const tallest=Math.max(...row.map(heightOf));
     row.forEach((n,i)=>{
-      const w=Math.min(gap-8,190), cx=gap*i+gap/2;
-      pos[n.id]={x:cx-w/2,y:bi*BH+16,w:w,h:NH,cx:cx,cy:bi*BH+16+NH/2,band:bi};
+      const w=Math.min(gap-8,190), cx=gap*i+gap/2, h=heightOf(n);
+      pos[n.id]={x:cx-w/2,y:y,w:w,h:h,cx:cx,cy:y+NH/2,band:bi};
     });
+    y+=tallest+22;
   });
-  return {pos,bands:ds,height:ds.length*BH+22,W};
+  return {pos,bands:ds,bandTop,height:y+6,W,AGENT_H};
 }
 
 function renderGoal(goal,sess,width){
@@ -261,7 +275,7 @@ function renderGoal(goal,sess,width){
   const nowBand=firstOpen?L.pos[firstOpen.id].band:-1;
 
   L.bands.forEach((d,bi)=>{
-    const y=bi*52+2;
+    const y=(L.bandTop[bi]||16)-14;
     const ln=document.createElementNS(NS,'line');
     ln.setAttribute('x1',0);ln.setAttribute('x2',L.W);ln.setAttribute('y1',y);ln.setAttribute('y2',y);
     ln.setAttribute('class','bandline'+(bi===nowBand?' nowline':''));
@@ -320,6 +334,21 @@ function renderGoal(goal,sess,width){
     if(n.view==='completed')label.style.fill='#b7e6c6';
     g.appendChild(label);
 
+    (n.agents||[]).forEach((a,ai)=>{
+      const ay=p.y+30+ai*L.AGENT_H;
+      const dot=document.createElementNS(NS,'circle');
+      dot.setAttribute('cx',p.x+11);dot.setAttribute('cy',ay+4);dot.setAttribute('r',3);
+      dot.setAttribute('fill',a.running?'#3b82f6':'#22c55e');
+      if(a.running) dot.setAttribute('class','pulsing');
+      g.appendChild(dot);
+      const lbl=document.createElementNS(NS,'text');
+      lbl.setAttribute('x',p.x+19);lbl.setAttribute('y',ay+7.5);
+      lbl.setAttribute('class','id');
+      lbl.style.fill=a.running?'#9ec8f5':'#8b97a8';
+      const room=Math.floor((p.w-26)/4.9);
+      lbl.textContent=(a.description||'agent').slice(0,room);
+      g.appendChild(lbl);
+    });
     if((n.failures||[]).length){
       const warn=document.createElementNS(NS,'text');
       warn.setAttribute('x',p.x+p.w-24);warn.setAttribute('y',p.y+13);
@@ -505,6 +534,8 @@ function renderSession(s){
     <span class="sname">${esc(s.name||s.firstPrompt||'(uten navn)')}</span>
     <span class="spath">${esc(s.project)}${s.branch?' · '+esc(s.branch):''}</span>
     <span style="flex:1"></span>
+    ${s.attention==='waiting'?'<span class="att waiting">venter på deg</span>':''}
+    ${s.attention==='stalled'?'<span class="att stalled">står stille</span>':''}
     <span class="agent ${s.agent||'claude'}">${s.agent||'claude'}</span>
     ${(s.events&&s.events.length>1)?`<button class="rbtn${rp?' on':''}">⏱ replay</button>`:''}`;
   const rbtn=head.querySelector('.rbtn');
@@ -528,6 +559,16 @@ function renderSession(s){
   body.className='sbody';
 
   if(rp) body.appendChild(replayPanel(s,rp));
+  if((s.agents||[]).length){
+    const run=s.agents.filter(a=>a.running).length;
+    const row=document.createElement('div');
+    row.className='agentrow';
+    row.innerHTML=`<b>${s.agents.length} agenter</b>${run?` · <span class="run">${run} kjører</span>`:''}`
+      +` — startet før arbeidet ble delt opp, så de hører til økta<br>`
+      +s.agents.slice(0,8).map(a=>`${a.running?'◐':'●'} ${esc(a.description)}`).join(' · ')
+      +(s.agents.length>8?` · +${s.agents.length-8}`:'');
+    body.appendChild(row);
+  }
   const all=goals.flatMap(g=>g.nodes);
   const running=all.find(n=>n.view==='in_progress');
   const stalled=all.find(n=>n.view==='stalled');

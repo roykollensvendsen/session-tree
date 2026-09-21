@@ -116,6 +116,27 @@ class Transcript:
             }
         )
 
+    def spawn_without_result(self, description: str, at: int) -> None:
+        """An Agent call whose result has not come back: the agent is running."""
+        self.counter += 1
+        self._write(
+            {
+                "type": "assistant",
+                "timestamp": stamp(at),
+                "message": {
+                    "role": "assistant",
+                    "content": [
+                        {
+                            "type": "tool_use",
+                            "id": f"toolu_{self.counter:04d}",
+                            "name": "Agent",
+                            "input": {"description": description},
+                        },
+                    ],
+                },
+            }
+        )
+
     def update(self, task_id: str, at: int, **fields: object) -> None:
         """Record a TaskUpdate carrying any of status, addBlockedBy, metadata."""
         self.counter += 1

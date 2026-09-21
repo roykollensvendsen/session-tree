@@ -4,7 +4,15 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from session_tree.state import STALL_SECONDS, TranscriptReader, _apply_views, _components, epoch_ms
+from session_tree.state import (
+    STALL_SECONDS,
+    TranscriptReader,
+    _apply_views,
+    _attach_agents,
+    _attention,
+    _components,
+    epoch_ms,
+)
 
 if TYPE_CHECKING:
     from tests.conftest import Transcript
@@ -157,3 +165,52 @@ def test_a_graph_without_dependencies_says_it_has_none(built: Transcript) -> Non
     docs = next(g for g in goals if g["title"] == "docs")
     assert tool["hasEdges"] is True
     assert docs["hasEdges"] is False
+
+
+def test_a_session_waiting_on_an_answer_is_told_apart_from_one_working() -> None:
+    """The point of the view is knowing which sessions need you, and when."""
+    assert _attention("idle", quiet=5, alive=True) == "waiting"
+    assert _attention("busy", quiet=5, alive=True) == "working"
+    assert _attention("busy", quiet=STALL_SECONDS + 1, alive=True) == "stalled"
+    assert _attention("busy", quiet=5, alive=False) == "ended"
+
+
+def test_a_session_busy_but_silent_is_not_reported_as_working() -> None:
+    """Claiming busy while nothing is written is the case worth going in for."""
+    assert _attention("busy", quiet=STALL_SECONDS - 1, alive=True) == "working"
+    assert _attention("busy", quiet=STALL_SECONDS + 1, alive=True) == "stalled"
+
+
+def test_agents_spawned_before_any_task_belong_to_the_session(transcript: Transcript) -> None:
+    """A review panel runs before the work is decomposed; inventing an owner would lie."""
+    transcript.tool("Agent", at=5, payload={"description": "Requirements seat"})
+    first = transcript.create("Collect the findings", at=10)
+    transcript.update(first, at=20, status="in_progress")
+    transcript.tool("Agent", at=30, payload={"description": "Adversary seat"})
+    reader = read(transcript)
+    loose = _attach_agents(list(reader.tasks.values()), reader.spawns, [])
+    assert [a["description"] for a in loose] == ["Requirements seat"]
+    assert [a["description"] for a in reader.tasks["1"]["agents"]] == ["Adversary seat"]
+
+
+def test_an_agent_still_running_is_marked_as_such(transcript: Transcript) -> None:
+    first = transcript.create("Run the panel", at=10)
+    transcript.update(first, at=20, status="in_progress")
+    transcript.tool("Agent", at=30, payload={"description": "Finished seat"})
+    transcript.spawn_without_result("Still running seat", at=40)
+    reader = read(transcript)
+    _attach_agents(list(reader.tasks.values()), reader.spawns, [])
+    agents = reader.tasks["1"]["agents"]
+    assert [a["running"] for a in agents] == [False, True]
+
+
+def test_agents_are_not_added_again_on_every_pass(transcript: Transcript) -> None:
+    """The nodes outlive a poll; appending each time would multiply the panel."""
+    first = transcript.create("Run the panel", at=10)
+    transcript.update(first, at=20, status="in_progress")
+    transcript.tool("Agent", at=30, payload={"description": "Only seat"})
+    reader = read(transcript)
+    nodes = list(reader.tasks.values())
+    for _ in range(3):
+        _attach_agents(nodes, reader.spawns, [])
+    assert len(reader.tasks["1"]["agents"]) == 1
