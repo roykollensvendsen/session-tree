@@ -113,3 +113,47 @@ def test_a_stamp_with_a_zulu_suffix_parses() -> None:
     assert epoch_ms("2026-09-18T21:00:00.000Z") - epoch_ms("2026-09-18T20:00:00.000Z") == 3_600_000
     assert epoch_ms("not a date") is None
     assert epoch_ms(None) is None
+
+
+def test_a_file_edited_while_a_node_was_active_is_kept_with_it(transcript: Transcript) -> None:
+    """A green node that cannot say what came out of it answers half the question."""
+    first = transcript.create("Write the parser", at=10)
+    transcript.create("Write the server", at=11)
+    transcript.update(first, at=20, status="in_progress")
+    transcript.tool("Write", at=30, payload={"file_path": "/home/dev/app/parser.py"})
+    transcript.tool("Edit", at=31, payload={"file_path": "/home/dev/app/parser.py"})
+    transcript.tool("Edit", at=32, payload={"file_path": "/home/dev/app/settings.toml"})
+    reader = read(transcript)
+    assert reader.tasks["1"]["files"] == ["parser.py", "settings.toml"]
+    assert reader.tasks["2"]["files"] == []
+
+
+def test_a_failed_command_is_kept_with_the_node_that_ran_it(transcript: Transcript) -> None:
+    first = transcript.create("Run the suite", at=10)
+    transcript.update(first, at=20, status="in_progress")
+    transcript.tool("Bash", at=30, payload={"command": "pytest -q"}, failed=True)
+    transcript.tool("Bash", at=31, payload={"command": "ls"}, failed=False)
+    reader = read(transcript)
+    assert reader.tasks["1"]["failures"] == ["pytest -q"]
+
+
+def test_work_done_with_no_node_active_is_attributed_to_none(transcript: Transcript) -> None:
+    """Guessing an owner would put work under a node that was already finished."""
+    first = transcript.create("Write the parser", at=10)
+    transcript.update(first, at=20, status="in_progress")
+    transcript.update(first, at=30, status="completed")
+    transcript.tool("Write", at=40, payload={"file_path": "/home/dev/app/stray.py"})
+    transcript.tool("Bash", at=41, payload={"command": "false"}, failed=True)
+    reader = read(transcript)
+    assert reader.tasks["1"]["files"] == []
+    assert reader.tasks["1"]["failures"] == []
+
+
+def test_a_graph_without_dependencies_says_it_has_none(built: Transcript) -> None:
+    """Otherwise a list draws as a graph and nothing tells the reader which it is."""
+    reader = read(built)
+    goals = _components(list(reader.tasks.values()))
+    tool = next(g for g in goals if g["title"] == "tool")
+    docs = next(g for g in goals if g["title"] == "docs")
+    assert tool["hasEdges"] is True
+    assert docs["hasEdges"] is False

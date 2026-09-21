@@ -82,6 +82,40 @@ class Transcript:
         )
         return task_id
 
+    def tool(self, name: str, at: int, payload: dict[str, object], *, failed: bool = False) -> None:
+        """Record any other tool call, and its result."""
+        self.counter += 1
+        use_id = f"toolu_{self.counter:04d}"
+        self._write(
+            {
+                "type": "assistant",
+                "timestamp": stamp(at),
+                "message": {
+                    "role": "assistant",
+                    "content": [
+                        {"type": "tool_use", "id": use_id, "name": name, "input": payload},
+                    ],
+                },
+            }
+        )
+        self._write(
+            {
+                "type": "user",
+                "timestamp": stamp(at),
+                "message": {
+                    "role": "user",
+                    "content": [
+                        {
+                            "type": "tool_result",
+                            "tool_use_id": use_id,
+                            "is_error": failed,
+                            "content": "Exit code 1" if failed else "ok",
+                        },
+                    ],
+                },
+            }
+        )
+
     def update(self, task_id: str, at: int, **fields: object) -> None:
         """Record a TaskUpdate carrying any of status, addBlockedBy, metadata."""
         self.counter += 1

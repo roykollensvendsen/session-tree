@@ -21,7 +21,7 @@ import subprocess
 import sys
 import time
 from datetime import datetime
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 from typing import Any, Literal, TypedDict
 
 from session_tree import codex
@@ -84,6 +84,8 @@ class Node(TypedDict, total=False):
     waitingOn: list[str]
     view: str
     durationMs: int | None
+    files: list[str]
+    failures: list[str]
 
 
 def epoch_ms(iso: str | None) -> int | None:
@@ -141,6 +143,11 @@ class TranscriptReader:
         self.first_prompt: str | None = None
         self.turns = 0
         self.events: list[Event] = []
+        #: The node last set to in_progress. What happens after that is
+        #: attributed to it -- Claude Code has no turn id tying a tool call to
+        #: a task, so this is "while the node was active", nothing stronger.
+        self.active_node: str | None = None
+        self.pending_bash: dict[str, str] = {}
 
     def read(self) -> None:
         """Consume whatever has been appended since the last call."""
@@ -183,6 +190,8 @@ class TranscriptReader:
                 "created": None,
                 "started": None,
                 "ended": None,
+                "files": [],
+                "failures": [],
             }
         return self.tasks[task_id]
 
@@ -236,8 +245,12 @@ class TranscriptReader:
             {"at": stamp or "", "atMs": epoch_ms(stamp), "status": node["status"]},
         )
         self._event(stamp, "status:" + node["status"], node["subject"], task_id)
-        if status == "in_progress" and not node["started"]:
-            node["started"] = stamp
+        if status == "in_progress":
+            self.active_node = task_id
+            if not node["started"]:
+                node["started"] = stamp
+        elif status in ("completed", "deleted") and self.active_node == task_id:
+            self.active_node = None
         if status in ("completed", "deleted"):
             node["ended"] = stamp
 
@@ -279,10 +292,32 @@ class TranscriptReader:
             elif kind == "tool_result":
                 self._consume_result(block)
 
+    MAX_TRACKED = 40
+
+    def _note_work(self, name: str, payload: dict[str, Any], use_id: str) -> None:
+        """Record what a tool call did, against whichever node is active."""
+        if name == "Bash":
+            command = payload.get("command")
+            if isinstance(command, str):
+                self.pending_bash[use_id] = command[:120]
+            return
+        if name not in ("Edit", "Write", "NotebookEdit") or self.active_node is None:
+            return
+        path = payload.get("file_path") or payload.get("notebook_path")
+        if not isinstance(path, str):
+            return
+        files = self.tasks[self.active_node]["files"] if self.active_node in self.tasks else None
+        if files is None:
+            return
+        name_only = PurePosixPath(path).name
+        if name_only and name_only not in files and len(files) < self.MAX_TRACKED:
+            files.append(name_only)
+
     def _consume_use(self, block: dict[str, Any], stamp: str | None) -> None:
         name = block.get("name", "")
         if stamp:
             self.last_activity = (stamp, name)
+        self._note_work(name, block.get("input") or {}, str(block.get("id", "")))
         if name == "TaskCreate":
             self.pending_creates[block.get("id", "")] = (block.get("input") or {}, stamp)
         elif name == "TaskUpdate":
@@ -290,6 +325,11 @@ class TranscriptReader:
 
     def _consume_result(self, block: dict[str, Any]) -> None:
         use_id = block.get("tool_use_id")
+        command = self.pending_bash.pop(str(use_id), None)
+        if command and block.get("is_error") and self.active_node in self.tasks:
+            failures = self.tasks[self.active_node]["failures"]
+            if len(failures) < self.MAX_TRACKED:
+                failures.append(command)
         if use_id not in self.pending_creates:
             return
         payload, created = self.pending_creates.pop(use_id)
@@ -427,7 +467,16 @@ def _components(nodes: list[Node]) -> list[dict[str, Any]]:
             live = [m for m in members if m["status"] != "abandoned"]
             label = (live or members)[0]["subject"]
         goals.append(
-            {"id": root, "title": label, "nodes": members, "depth": _depths(members)},
+            {
+                "id": root,
+                "title": label,
+                "nodes": members,
+                "depth": _depths(members),
+                # Ten nodes with no blockedBy between them draw as a graph and are
+                # a list. The view says so rather than letting the shape imply it.
+                "hasEdges": any(m["blockedBy"] for m in members),
+                "danglingEdges": [],
+            }
         )
     goals.sort(key=lambda g: min((int(n["id"]) for n in g["nodes"] if n["id"].isdigit()), default=0))
     return goals
