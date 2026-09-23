@@ -59,7 +59,18 @@
   .goal{background:var(--panel2);border:1px solid var(--line);border-radius:8px;
         padding:9px 10px 6px;flex:1 1 330px;min-width:300px}
   .gtitle{font-size:11.5px;font-weight:600;color:#cbd6e6;margin-bottom:2px;
-          white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+          white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:zoom-in}
+  .gtitle:hover{color:#ffffff;text-decoration:underline dotted}
+  /* one graph on its own: the card's graph, filling the window, zoomable */
+  #focus{position:fixed;inset:0;background:var(--bg);z-index:50;display:none;flex-direction:column}
+  #focus.on{display:flex}
+  #focus .fhead{display:flex;align-items:center;gap:12px;padding:9px 14px;border-bottom:1px solid var(--line);background:var(--panel)}
+  #focus .fhead b{font-size:13px;color:#cbd6e6;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  #focus .fhint{font-size:10.5px;color:var(--faint);white-space:nowrap}
+  #focus button{background:var(--panel2);border:1px solid var(--line);color:var(--ink);border-radius:6px;padding:3px 9px;font-size:11px;cursor:pointer}
+  #focus .fbody{flex:1;overflow:hidden;cursor:grab;touch-action:none}
+  #focus .fbody.dragging{cursor:grabbing}
+  #focus .fbody svg{width:100%;height:100%;overflow:hidden}
   .gmeta{font-size:10px;color:var(--faint);margin-bottom:7px}
   .bar{height:3px;border-radius:2px;background:#222936;overflow:hidden;margin-bottom:8px}
   .bar b{display:block;height:100%;background:var(--done);transition:width .4s}
@@ -149,6 +160,7 @@
     <span><i style="background:var(--gone)"></i>forkastet</span>
   </span>
 </header>
+<div id="focus"><div class="fhead"><b id="ftitle"></b><span class="fhint">hjul = zoom · dra = panorér · dobbeltklikk = tilpass · Esc = lukk</span><span style="flex:1"></span><button id="ffit">tilpass</button><button id="fclose">✕</button></div><div class="fbody" id="fbody"></div></div>
 <main id="root"></main>
 <div class="tip" id="tip"></div>
 
@@ -605,6 +617,7 @@ function renderSession(s){
         <div class="bar"><b style="width:${live.length?done/live.length*100:0}%"></b></div>
         ${(g.danglingEdges||[]).length?`<div class="broken">⚠ peker på steg som ikke finnes: ${esc(g.danglingEdges.join(', '))}</div>`:''}
         ${(g.hasEdges===false)?`<div class="why">ingen avhengigheter mellom disse — rekkefølgen er listerekkefølgen, ikke noe som venter på noe</div>`:''}`;
+      card.querySelector('.gtitle').onclick=()=>openFocus(g,s);
       wrap.appendChild(card);
       PENDING.push({card:card,goal:g,sess:s});
     });
@@ -615,6 +628,76 @@ function renderSession(s){
 }
 
 function refresh(){ if(LAST) render(LAST); }
+
+/* One graph on its own. The same renderGoal draws it, at the window's width,
+   and the viewBox is what zooms and pans -- the drawing itself never changes,
+   so tooltips and highlighting work exactly as in the card. FOCUS remembers
+   which goal and where the eye is, so a live update redraws in place. */
+const FOCUS={open:false,sessionId:null,title:null,view:null,base:null};
+const fbox=()=>document.getElementById('fbody');
+function fitFocus(){ FOCUS.view=FOCUS.base?{...FOCUS.base}:null; applyView(); }
+function applyView(){
+  const svg=fbox().querySelector('svg'); if(!svg||!FOCUS.view) return;
+  const v=FOCUS.view; svg.setAttribute('viewBox',`${v.x} ${v.y} ${v.w} ${v.h}`);
+}
+function drawFocus(){
+  if(!FOCUS.open||!LAST) return;
+  const sess=LAST.sessions.find(x=>x.sessionId===FOCUS.sessionId);
+  const rp=sess&&REPLAY.get(sess.sessionId);
+  const goals=sess?(rp?stateAt(sess,rp.t):sess.goals):[];
+  const goal=goals.find(g=>g.title===FOCUS.title);
+  if(!goal){ closeFocus(); return; }
+  const body=fbox(); body.innerHTML='';
+  const svg=renderGoal(goal,sess,Math.max(600,body.clientWidth-40));
+  svg.removeAttribute('height');
+  body.appendChild(svg);
+  // the drawing's own frame, padded, is what "fit" means; keep the aspect of the window
+  const vb=svg.getAttribute('viewBox').split(' ').map(Number);
+  const W=vb[2]+40, H=vb[3]+40, ar=body.clientWidth/Math.max(1,body.clientHeight);
+  let w=W, h=H; if(w/h<ar) w=h*ar; else h=w/ar;
+  FOCUS.base={x:vb[0]-20-(w-W)/2,y:vb[1]-20-(h-H)/2,w:w,h:h};
+  if(!FOCUS.view) FOCUS.view={...FOCUS.base};
+  applyView();
+  const live=goal.nodes.filter(n=>n.view!=='abandoned');
+  document.getElementById('ftitle').textContent=`${goal.title} — ${live.filter(n=>n.view==='completed').length}/${live.length} ferdig · ${sess.project}`;
+}
+function openFocus(goal,sess){
+  FOCUS.open=true; FOCUS.sessionId=sess.sessionId; FOCUS.title=goal.title; FOCUS.view=null; FOCUS.base=null;
+  document.getElementById('focus').classList.add('on');
+  drawFocus();
+}
+function closeFocus(){
+  FOCUS.open=false; document.getElementById('focus').classList.remove('on'); fbox().innerHTML=''; hideTip();
+}
+(function wireFocus(){
+  const body=fbox();
+  document.getElementById('fclose').onclick=closeFocus;
+  document.getElementById('ffit').onclick=fitFocus;
+  addEventListener('keydown',e=>{ if(e.key==='Escape'&&FOCUS.open) closeFocus(); });
+  body.addEventListener('wheel',e=>{
+    if(!FOCUS.view) return; e.preventDefault();
+    const v=FOCUS.view, r=body.getBoundingClientRect();
+    const px=v.x+(e.clientX-r.left)/r.width*v.w, py=v.y+(e.clientY-r.top)/r.height*v.h;
+    const k=Math.exp(e.deltaY*0.0015);            // wheel down = out, wheel up = in
+    const nw=Math.min(FOCUS.base.w*8,Math.max(FOCUS.base.w/40,v.w*k)), nh=nw*(v.h/v.w);
+    FOCUS.view={x:px-(px-v.x)*(nw/v.w),y:py-(py-v.y)*(nh/v.h),w:nw,h:nh};
+    applyView();
+  },{passive:false});
+  let drag=null;
+  body.addEventListener('pointerdown',e=>{
+    if(!FOCUS.view||e.button!==0) return;
+    drag={x:e.clientX,y:e.clientY,v:{...FOCUS.view}}; body.setPointerCapture(e.pointerId); body.classList.add('dragging');
+  });
+  body.addEventListener('pointermove',e=>{
+    if(!drag) return;
+    const r=body.getBoundingClientRect();
+    FOCUS.view={...drag.v,x:drag.v.x-(e.clientX-drag.x)/r.width*drag.v.w,y:drag.v.y-(e.clientY-drag.y)/r.height*drag.v.h};
+    applyView();
+  });
+  const stop=()=>{ drag=null; body.classList.remove('dragging'); };
+  body.addEventListener('pointerup',stop); body.addEventListener('pointercancel',stop);
+  body.addEventListener('dblclick',fitFocus);
+})();
 
 function render(data){
   LAST=data;
@@ -638,6 +721,7 @@ function render(data){
   PENDING.forEach(p=>p.card.appendChild(renderGoal(p.goal,p.sess,p.card.clientWidth-22)));
   PENDING.length=0;
   window.scrollTo(0,keep);
+  if(FOCUS.open) drawFocus();
 }
 
 let es;

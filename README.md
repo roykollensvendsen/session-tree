@@ -65,6 +65,14 @@ Transcripts reach tens of megabytes, so each is read forward from a remembered
 byte offset and never re-parsed. A change reaches an open window in about a
 hundredth of a second.
 
+## One graph on its own
+
+A goal card shows its graph at the width the card has. Click the goal's title
+and the same graph opens alone, filling the window, drawn live like the card.
+There the mouse wheel zooms around the pointer, a drag pans, a double-click
+fits the whole graph again, and Esc or the ✕ closes it. A graph of a hundred
+nodes is readable that way, and still updates while it is open.
+
 ## Codex
 
 Codex records turns, not tasks. A thread is drawn as a band of turns along time
