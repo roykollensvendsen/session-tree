@@ -8,5 +8,8 @@ versions follow [semantic versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- Click a goal's title to open its graph alone in the window, with wheel
+  zoom, drag pan, double-click to fit and Esc to close — large graphs are
+  readable that way.
 - The walking skeleton: the thinnest path through the whole system, end to
   end, green in CI on the first commit.
