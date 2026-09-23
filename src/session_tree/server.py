@@ -1,4 +1,9 @@
-"""Serve the live session view on localhost, pushing changes as they happen.
+"""Serve the live session view, pushing changes as they happen.
+
+It listens on localhost unless told otherwise: `SESSION_TREE_HOST` (or the
+CLI's `--host`) names the address to bind, so a phone on the same tailnet can
+open it. There is no authentication, so the address should be one only your
+own devices can reach, never 0.0.0.0 on a shared network.
 
 The watcher thread re-reads what has been appended to the transcripts several
 times a second and pushes to every open browser over server-sent events, so the
@@ -24,6 +29,7 @@ from session_tree.state import build
 HERE = Path(__file__).resolve().parent
 PAGE = HERE / "index.html"
 DEFAULT_PORT = 8787
+DEFAULT_HOST = "127.0.0.1"
 POLL_SECONDS = 0.4
 CLIENT_QUEUE_DEPTH = 8
 HEARTBEAT_SECONDS = 15
@@ -136,13 +142,25 @@ class Handler(BaseHTTPRequestHandler):
         self.wfile.flush()
 
 
-def serve(port: int | None = None) -> None:
+def resolve_host(host: str | None = None) -> str:
+    """Return the address to bind: the argument, else SESSION_TREE_HOST, else localhost."""
+    return host or os.environ.get("SESSION_TREE_HOST") or DEFAULT_HOST
+
+
+def make_server(port: int, host: str) -> ThreadingHTTPServer:
+    """Bind the server to host:port without serving yet."""
+    server = ThreadingHTTPServer((host, port), Handler)
+    server.daemon_threads = True
+    return server
+
+
+def serve(port: int | None = None, host: str | None = None) -> None:
     """Start the watcher and serve until interrupted."""
     chosen = port or int(os.environ.get("SESSION_TREE_PORT", DEFAULT_PORT))
+    where = resolve_host(host)
     threading.Thread(target=watch, daemon=True).start()
-    server = ThreadingHTTPServer(("127.0.0.1", chosen), Handler)
-    server.daemon_threads = True
-    sys.stderr.write(f"session-tree on http://127.0.0.1:{chosen}/\n")
+    server = make_server(chosen, where)
+    sys.stderr.write(f"session-tree on http://{where}:{chosen}/\n")
     server.serve_forever()
 
 

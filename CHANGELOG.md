@@ -8,6 +8,10 @@ versions follow [semantic versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- Several independent goals in one session are pages: swipe, dots, arrow
+  keys or "alle" for the wall. The page fits a phone, the focused graph
+  pinches to zoom, and `SESSION_TREE_HOST` / `--host` bind the server to a
+  tailnet address so the phone can reach it.
 - Click a goal's title to open its graph alone in the window, with wheel
   zoom, drag pan, double-click to fit and Esc to close — large graphs are
   readable that way.

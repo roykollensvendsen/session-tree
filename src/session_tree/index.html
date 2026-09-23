@@ -2,6 +2,7 @@
 <html lang="no">
 <head>
 <meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Session Tree</title>
 <style>
   :root{
@@ -144,6 +145,35 @@
   .broken{font-size:10.5px;color:#f0c98a;background:rgba(234,179,8,.1);
       border-left:2px solid var(--stall);border-radius:0 4px 4px 0;padding:4px 8px;margin:0 0 7px}
   .empty{color:var(--faint);font-size:11px;padding:8px 2px;font-style:italic}
+  /* several independent goals: one page at a time, with a pager */
+  .pager{display:flex;align-items:center;gap:8px;margin:0 0 8px;font-size:11px;color:var(--dim);
+      user-select:none;touch-action:pan-y}
+  .pager button{background:var(--panel2);border:1px solid var(--line);color:var(--ink);border-radius:6px;
+      padding:2px 10px;font-size:12px;cursor:pointer;line-height:1.6}
+  .pager button:hover{border-color:#3d4a5c}
+  .pager button.on{color:#d9c9f5;border-color:#9370db;background:rgba(147,112,219,.16)}
+  .pager .dots{display:flex;gap:5px;align-items:center}
+  .pager .dots i{width:8px;height:8px;border-radius:50%;background:var(--pending);cursor:pointer;display:block}
+  .pager .dots i.on{background:#9370db}
+  .pager .n{font-variant-numeric:tabular-nums;min-width:36px;text-align:center}
+  .pager .ptitle{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#cbd6e6;font-weight:600}
+  .goals.paged{touch-action:pan-y}
+  /* a phone: one column, thumb-sized controls, nothing wider than the screen */
+  @media (max-width:640px){
+    header{padding:8px 16px;gap:8px;flex-wrap:wrap}
+    .key{display:none}
+    main{padding:12px 16px 40px}
+    .sbody{padding:4px 10px 12px}
+    .goal{flex:1 1 100%;min-width:0}
+    .spath{display:none}
+    .shead{min-height:44px}
+    .rp{flex-wrap:wrap}
+    .rp button,.rbtn,.pager button,#focus button,.behind{min-height:40px;min-width:40px;padding:6px 12px;font-size:13px}
+    .pager .dots i{width:14px;height:14px}
+    #focus .fhint{display:none}
+    #focus .fhead b{font-size:12px}
+    .tip{max-width:calc(100vw - 32px)}
+  }
 </style>
 </head>
 <body>
@@ -160,7 +190,7 @@
     <span><i style="background:var(--gone)"></i>forkastet</span>
   </span>
 </header>
-<div id="focus"><div class="fhead"><b id="ftitle"></b><span class="fhint">hjul = zoom · dra = panorér · dobbeltklikk = tilpass · Esc = lukk</span><span style="flex:1"></span><button id="ffit">tilpass</button><button id="fclose">✕</button></div><div class="fbody" id="fbody"></div></div>
+<div id="focus"><div class="fhead"><b id="ftitle"></b><span class="fhint">hjul eller knip = zoom · dra = panorér · dobbeltklikk = tilpass · Esc = lukk</span><span style="flex:1"></span><button id="ffit">tilpass</button><button id="fclose">✕</button></div><div class="fbody" id="fbody"></div></div>
 <main id="root"></main>
 <div class="tip" id="tip"></div>
 
@@ -225,6 +255,20 @@ function clock(ms){ const d=new Date(ms);
 const tip=document.getElementById('tip');
 const collapsed=new Set(JSON.parse(localStorage.getItem('st.collapsed')||'[]'));
 const opened=new Set(JSON.parse(localStorage.getItem('st.opened')||'[]'));
+/* Which goal a session's pager is on, and whether the viewer asked for all of
+   them at once. Both are conveniences, so losing them costs nothing. */
+const SWIPE_PX=40;                 // a horizontal move this long is a swipe, not a tap
+let PAGE={}, pagerAll=false;
+try{ PAGE=JSON.parse(localStorage.getItem('st.page')||'{}')||{}; pagerAll=localStorage.getItem('st.pagerAll')==='1'; }catch(e){ PAGE={}; }
+function remember(key,value){ try{ localStorage.setItem(key,value); }catch(e){} }
+function pageOf(sess,count){
+  const i=PAGE[sess.sessionId]|0;
+  return Math.min(Math.max(0,i),Math.max(0,count-1));
+}
+function turnPage(sessionId,delta,count){
+  const i=(((PAGE[sessionId]|0)+delta)%count+count)%count;
+  PAGE[sessionId]=i; remember('st.page',JSON.stringify(PAGE)); refresh();
+}
 
 function ago(s){ s=Math.max(0,Math.round(s));
   if(s<60)return s+'s'; if(s<3600)return Math.round(s/60)+' min';
@@ -607,8 +651,13 @@ function renderSession(s){
     body.appendChild(turnStrip(s, rp?rp.t:Infinity));
   }
   if(goals.length){
-    const wrap=document.createElement('div'); wrap.className='goals';
-    goals.forEach(g=>{
+    // several independent goals are pages, not a wall: one decomposition at a
+    // time, unless the viewer asks for all of them
+    const paged=goals.length>1&&!pagerAll;
+    const page=pageOf(s,goals.length);
+    if(goals.length>1) body.appendChild(pagerBar(s,goals,page));
+    const wrap=document.createElement('div'); wrap.className='goals'+(paged?' paged':'');
+    (paged?[goals[page]]:goals).forEach(g=>{
       const live=g.nodes.filter(n=>n.view!=='abandoned');
       const done=live.filter(n=>n.view==='completed').length;
       const card=document.createElement('div'); card.className='goal';
@@ -621,11 +670,54 @@ function renderSession(s){
       wrap.appendChild(card);
       PENDING.push({card:card,goal:g,sess:s});
     });
+    if(paged) wireSwipe(wrap,s.sessionId,goals.length);
     body.appendChild(wrap);
   }
   el.appendChild(body);
   return el;
 }
+
+/* The pager: previous, dots, "2 / 4", next, and a switch to see every goal
+   at once. A tap on a dot goes straight to that goal. */
+function pagerBar(s,goals,page){
+  const bar=document.createElement('div'); bar.className='pager';
+  bar.innerHTML=`<button title="forrige mål">‹</button><span class="dots"></span><span class="n">${page+1} / ${goals.length}</span>
+    <button title="neste mål">›</button><span class="ptitle">${pagerAll?'':esc(goals[page].title)}</span>
+    <button class="all${pagerAll?' on':''}" title="alle målene på én gang">alle</button>`;
+  const [prev,,,next]=bar.children;
+  prev.onclick=()=>turnPage(s.sessionId,-1,goals.length);
+  next.onclick=()=>turnPage(s.sessionId,1,goals.length);
+  const dots=bar.querySelector('.dots');
+  goals.forEach((g,i)=>{
+    const d=document.createElement('i'); if(i===page) d.className='on'; d.title=g.title;
+    d.onclick=()=>{ PAGE[s.sessionId]=i; remember('st.page',JSON.stringify(PAGE)); refresh(); };
+    dots.appendChild(d);
+  });
+  bar.querySelector('.all').onclick=()=>{ pagerAll=!pagerAll; remember('st.pagerAll',pagerAll?'1':'0'); refresh(); };
+  return bar;
+}
+/* A horizontal swipe on the paged goals turns the page; a vertical one is the
+   page scrolling, which touch-action:pan-y leaves to the browser. */
+function wireSwipe(el,sessionId,count){
+  let from=null;
+  el.addEventListener('pointerdown',e=>{ if(e.pointerType==='mouse'&&e.button!==0) return; from={x:e.clientX,y:e.clientY}; });
+  el.addEventListener('pointerup',e=>{
+    if(!from) return;
+    const dx=e.clientX-from.x, dy=e.clientY-from.y; from=null;
+    if(Math.abs(dx)>=SWIPE_PX&&Math.abs(dx)>Math.abs(dy)) turnPage(sessionId,dx<0?1:-1,count);
+  });
+  el.addEventListener('pointercancel',()=>{ from=null; });
+}
+addEventListener('keydown',e=>{
+  if(FOCUS.open||e.target.matches('input,textarea,button')) return;
+  if(e.key!=='ArrowLeft'&&e.key!=='ArrowRight') return;
+  // the arrows turn the first open pager on the page
+  const bar=document.querySelector('.sess:not(.closed) .pager'); if(!bar||!LAST) return;
+  const el=bar.closest('.sess'), idx=[...document.querySelectorAll('.sess')].indexOf(el);
+  const s=LAST.sessions[idx]; if(!s) return;
+  const rp=REPLAY.get(s.sessionId), count=(rp?stateAt(s,rp.t):s.goals).length;
+  if(count>1){ e.preventDefault(); turnPage(s.sessionId,e.key==='ArrowRight'?1:-1,count); }
+});
 
 function refresh(){ if(LAST) render(LAST); }
 
@@ -683,18 +775,47 @@ function closeFocus(){
     FOCUS.view={x:px-(px-v.x)*(nw/v.w),y:py-(py-v.y)*(nh/v.h),w:nw,h:nh};
     applyView();
   },{passive:false});
-  let drag=null;
+  // one pointer drags; two pinch: the view scales by the change in the
+  // distance between the fingers, about their midpoint. A second tap within
+  // 300 ms fits the graph, for the touch screens that send no dblclick.
+  const pointers=new Map();
+  let drag=null, pinch=null, lastTap=0;
+  const zoomAt=(px,py,k,from)=>{
+    const nw=Math.min(FOCUS.base.w*8,Math.max(FOCUS.base.w/40,from.w*k)), nh=nw*(from.h/from.w);
+    FOCUS.view={x:px-(px-from.x)*(nw/from.w),y:py-(py-from.y)*(nh/from.h),w:nw,h:nh};
+    applyView();
+  };
   body.addEventListener('pointerdown',e=>{
-    if(!FOCUS.view||e.button!==0) return;
-    drag={x:e.clientX,y:e.clientY,v:{...FOCUS.view}}; body.setPointerCapture(e.pointerId); body.classList.add('dragging');
+    if(!FOCUS.view||(e.pointerType==='mouse'&&e.button!==0)) return;
+    pointers.set(e.pointerId,{x:e.clientX,y:e.clientY}); body.setPointerCapture(e.pointerId);
+    if(pointers.size===2){
+      const [a,b]=[...pointers.values()];
+      pinch={d:Math.hypot(a.x-b.x,a.y-b.y),mx:(a.x+b.x)/2,my:(a.y+b.y)/2,v:{...FOCUS.view}}; drag=null;
+    } else { drag={x:e.clientX,y:e.clientY,v:{...FOCUS.view}}; body.classList.add('dragging'); }
   });
   body.addEventListener('pointermove',e=>{
-    if(!drag) return;
+    if(!pointers.has(e.pointerId)) return;
+    pointers.set(e.pointerId,{x:e.clientX,y:e.clientY});
     const r=body.getBoundingClientRect();
+    if(pinch&&pointers.size===2){
+      const [a,b]=[...pointers.values()], d=Math.hypot(a.x-b.x,a.y-b.y); if(d<1) return;
+      const px=pinch.v.x+(pinch.mx-r.left)/r.width*pinch.v.w, py=pinch.v.y+(pinch.my-r.top)/r.height*pinch.v.h;
+      zoomAt(px,py,pinch.d/d,pinch.v);
+      return;
+    }
+    if(!drag) return;
     FOCUS.view={...drag.v,x:drag.v.x-(e.clientX-drag.x)/r.width*drag.v.w,y:drag.v.y-(e.clientY-drag.y)/r.height*drag.v.h};
     applyView();
   });
-  const stop=()=>{ drag=null; body.classList.remove('dragging'); };
+  const stop=e=>{
+    pointers.delete(e.pointerId);
+    if(pointers.size<2) pinch=null;
+    if(!pointers.size){
+      const moved=drag&&Math.hypot(e.clientX-drag.x,e.clientY-drag.y)>6;
+      drag=null; body.classList.remove('dragging');
+      if(e.pointerType!=='mouse'&&!moved){ const now=Date.now(); if(now-lastTap<300) fitFocus(); lastTap=now; }
+    }
+  };
   body.addEventListener('pointerup',stop); body.addEventListener('pointercancel',stop);
   body.addEventListener('dblclick',fitFocus);
 })();
