@@ -73,6 +73,28 @@ There the mouse wheel zooms around the pointer, a drag pans, a double-click
 fits the whole graph again, and Esc or the ✕ closes it. A graph of a hundred
 nodes is readable that way, and still updates while it is open.
 
+## On your phone
+
+The page fits a phone: one goal at a time, thumb-sized buttons, and the
+focused graph pinches to zoom. When a session has more than one independent
+goal, a pager shows one decomposition at a time — swipe left or right, tap a
+dot, or use the arrow keys on a keyboard; "alle" shows every goal at once
+again. The page you were on is remembered per session.
+
+The server listens on localhost only. To reach it from a phone, bind it to
+your [Tailscale](https://tailscale.com) address instead, so that only devices
+on your own tailnet can connect:
+
+<!-- not run: binds a server to this machine's tailnet address -->
+```bash
+SESSION_TREE_HOST=$(tailscale ip -4) session-tree start
+```
+
+Then open `http://<that address>:8787/` on the phone. `--host` does the same
+from the command line. **There is no authentication**: the page shows every
+session's prompts and file paths to whoever can reach it, so bind it to the
+tailnet address only, never to `0.0.0.0` on a network you share.
+
 ## Codex
 
 Codex records turns, not tasks. A thread is drawn as a band of turns along time
