@@ -152,6 +152,7 @@
   .node.lit rect{stroke:#facc15;stroke-width:3.5;filter:drop-shadow(0 0 7px rgba(250,204,21,.8))}
   .tip .ask{color:#facc15;margin:5px 0;font-weight:600}
   .chip{cursor:pointer}
+  .node.box>rect{fill-opacity:.45}
   .chip:hover rect{filter:brightness(1.2)}
   .goal .up{font-size:11px;color:#9ec8f5;cursor:pointer;margin:2px 0 4px;padding:6px 0}
   .goal .up b{color:#cfe3fb}
@@ -444,6 +445,79 @@ function layout(goal,width,size){
   return {pos,bands:ds,bandTop,height:y+6,W};
 }
 
+/* The layout when a breakdown is unfolded: the node becomes a box, its own
+   subject the header across the top, and its steps a small graph of their own
+   inside it -- so the node is visibly the part of the network it stands for.
+   Every level is laid out in bands by its own dependencies. An edge from a step
+   to something outside counts for whichever box at that level holds the step,
+   so the box sits below what it waits on. Boxes are sized from the inside out. */
+function layoutNested(goal,width,size){
+  const byId=Object.fromEntries(goal.nodes.map(n=>[n.id,n]));
+  const kids={};
+  goal.nodes.forEach(n=>{ if(n.parent&&byId[n.parent]) (kids[n.parent]=kids[n.parent]||[]).push(n); });
+  const lines={}, blocks={};
+  const under=n=>[n,...(kids[n.id]||[]).flatMap(under)];
+  // the node on this level that holds id, if any
+  const holder=(id,level)=>{ for(let n=byId[id];n;n=byId[n.parent]) if(level.has(n.id)) return n.id; return null; };
+  const headOf=n=>size.textTop+(lines[n.id].length-1)*size.lineH+size.padBottom
+    +((n.agents||[]).length?(n.agents.length*size.agentH+4):0);
+  function arrange(members){
+    const level=new Set(members.map(n=>n.id));
+    members.forEach(n=>{
+      const inner=kids[n.id]?arrange(kids[n.id]):null;
+      const w=inner?Math.max(size.nodeW,inner.W+2*size.pad):size.nodeW;
+      // the header reads like the node it is: wrapped at a node's width, however
+      // wide the box under it has grown
+      lines[n.id]=wrapLines(n.subject,Math.min(w,size.nodeW)-2*size.pad-(chipOf(n)?size.chipW:0),size.font,size.lines);
+      const head=headOf(n);
+      blocks[n.id]={w:w,head:head,h:inner?head+inner.H+size.pad*1.5:head,inner:inner};
+    });
+    const depsOf=n=>[...new Set(under(n).flatMap(m=>m.blockedBy||[]).map(d=>holder(d,level)).filter(d=>d&&d!==n.id))];
+    const depth={};
+    const walk=(id,seen)=>{
+      if(id in depth) return depth[id];
+      if(seen.has(id)) return 0;
+      const ds=depsOf(byId[id]), next=new Set(seen).add(id);
+      return depth[id]=ds.length?1+Math.max(...ds.map(d=>walk(d,next))):0;
+    };
+    members.forEach(n=>walk(n.id,new Set()));
+    const rows=[];
+    members.forEach(n=>{ (rows[depth[n.id]]=rows[depth[n.id]]||[]).push(n); });
+    const dense=rows.filter(Boolean);
+    const rowW=r=>r.reduce((a,n)=>a+blocks[n.id].w,0)+size.colGap*(r.length-1);
+    const W=Math.max(...dense.map(rowW));
+    const place={}, tops=[];
+    let y=0;
+    dense.forEach((row,ri)=>{
+      // the same pull toward what a node waits on as the flat layout uses
+      row.forEach(n=>{
+        const ups=depsOf(n).map(d=>place[d]).filter(Boolean);
+        n._h=ups.length?ups.reduce((a,p)=>a+p.x+blocks[p.id].w/2,0)/ups.length:W/2;
+      });
+      row.sort((a,b)=>a._h-b._h);
+      let x=(W-rowW(row))/2;
+      tops.push(y);
+      row.forEach(n=>{ place[n.id]={id:n.id,x:x,y:y,row:ri}; x+=blocks[n.id].w+size.colGap; });
+      y+=Math.max(...row.map(n=>blocks[n.id].h))+size.bandGap;
+    });
+    return {W:W,H:y-size.bandGap,place:place,tops:tops,members:members};
+  }
+  const top=arrange(goal.nodes.filter(n=>!(n.parent&&byId[n.parent])));
+  const W=Math.max(size.minW,width||330,top.W+2*size.colGap), pos={};
+  // absolute places, box by box; a step keeps the band of the box it is in
+  const put=(res,ox,oy,band)=>res.members.forEach(n=>{
+    const at=res.place[n.id], b=blocks[n.id], x=ox+at.x, y=oy+at.y, bi=band==null?at.row:band;
+    pos[n.id]={x:x,y:y,w:b.w,h:b.head,cx:x+b.w/2,cy:y+b.head/2,band:bi,lines:lines[n.id]};
+    if(b.inner){
+      pos[n.id].frame={x:x,y:y,w:b.w,h:b.h};
+      put(b.inner,x+(b.w-b.inner.W)/2,y+b.head+size.pad/2,bi);
+    }
+  });
+  put(top,(W-top.W)/2,16,null);
+  return {pos:pos,bands:top.tops.map((t,i)=>i),bandTop:top.tops.map(t=>t+16),height:16+top.H+22,W:W,
+    holds:(a,b)=>{ for(let n=byId[b];n;n=byId[n.parent]) if(n.parent===a) return true; return false; }};
+}
+
 /* A breakdown folded into its node (ADR-ST-005). The server says whether it
    starts folded -- only when nothing outside it depends on one of its steps --
    and a tap on the node's chip overrides that for this viewer, remembered. */
@@ -463,24 +537,14 @@ function toggleFold(sess,n){
   FOLD[foldKey(sess,n)]=!isFolded(sess,n);
   remember('st.fold',JSON.stringify(FOLD));
   hideTip();
-  // the drawing changes width, so keep the node that was tapped in view
-  if(FOCUS.open){ FOCUS.view=null; FOCUS.target=n.id; }
+  // the drawing changes size under the finger; keep the chip where it was
+  // tapped, at the same zoom, so a second tap in the same place folds it back
+  const chip=FOCUS.open&&FOCUS.view&&fbox().querySelector(`.node[data-id="${CSS.escape(n.id)}"] .chip rect`);
+  if(chip){
+    const v=FOCUS.view, X=+chip.getAttribute('x')+(+chip.getAttribute('width')), Y=+chip.getAttribute('y');
+    FOCUS.anchor={id:n.id,fx:(X-v.x)/v.w,fy:(Y-v.y)/v.h};
+  }
   refresh();
-}
-/* Bands with an unfolded breakdown drawn under its node: a step sits at least
-   one band below the node it belongs to, as it would below a dependency, and
-   whatever waits on the step moves down with it. */
-function bandsWithSteps(goal){
-  const byId=Object.fromEntries(goal.nodes.map(n=>[n.id,n])), depth={};
-  const walk=(id,seen)=>{
-    if(id in depth) return depth[id];
-    const n=byId[id]; if(!n||seen.has(id)) return 0;
-    const above=[...(n.blockedBy||[]),...(n.parent&&byId[n.parent]?[n.parent]:[])].filter(d=>d in byId);
-    const next=new Set(seen).add(id);
-    return depth[id]=above.length?1+Math.max(...above.map(d=>walk(d,next))):0;
-  };
-  goal.nodes.forEach(n=>walk(n.id,new Set()));
-  return depth;
 }
 /* What the chip on a node says, if it carries one: its own breakdown, or
    work in another session. */
@@ -493,8 +557,8 @@ function chipOf(n){
 function renderGoal(goal,sess,width,size){
   const hidden=hiddenBy(goal,sess);
   if(hidden.size) goal={...goal,nodes:goal.nodes.filter(n=>!hidden.has(n.id))};
-  if(goal.nodes.some(n=>n.breakdown)) goal={...goal,depth:bandsWithSteps(goal)};
-  const L=layout(goal,width,size), NS='http://www.w3.org/2000/svg';
+  const nested=goal.nodes.some(n=>n.parent&&goal.nodes.some(m=>m.id===n.parent));
+  const L=nested?layoutNested(goal,width,size):layout(goal,width,size), NS='http://www.w3.org/2000/svg';
   const svg=document.createElementNS(NS,'svg');
   svg.setAttribute('viewBox',`0 0 ${L.W} ${L.height}`);
   svg.setAttribute('height',L.height);
@@ -517,10 +581,12 @@ function renderGoal(goal,sess,width,size){
     }
   });
 
-  goal.nodes.forEach(n=>{
+  const drawEdges=()=>goal.nodes.forEach(n=>{
     (n.blockedBy||[]).forEach(dep=>{
       const a=L.pos[dep], b=L.pos[n.id];
       if(!a||!b) return;
+      // a step inside its own box needs no wire to the box: containment says it
+      if(L.holds&&(L.holds(dep,n.id)||L.holds(n.id,dep))) return;
       const p=document.createElementNS(NS,'path');
       const my=(a.cy+a.h/2+b.y)/2;
       p.setAttribute('d',`M${a.cx},${a.y+a.h} C${a.cx},${my} ${b.cx},${my} ${b.cx},${b.y}`);
@@ -530,14 +596,17 @@ function renderGoal(goal,sess,width,size){
     });
   });
 
-  goal.nodes.forEach(n=>{
+  // a node, or an unfolded breakdown: then the node is itself the box round
+  // its steps, its subject the heading and its chip in the top right corner
+  const drawNode=n=>{
     const p=L.pos[n.id]; if(!p) return;
     const g=document.createElementNS(NS,'g');
     g.setAttribute('class','node'); g.dataset.id=n.id;
 
     const r=document.createElementNS(NS,'rect');
-    r.setAttribute('x',p.x);r.setAttribute('y',p.y);r.setAttribute('width',p.w);r.setAttribute('height',p.h);
-    r.setAttribute('rx',6);
+    r.setAttribute('x',p.x);r.setAttribute('y',p.y);r.setAttribute('width',p.w);r.setAttribute('height',p.frame?p.frame.h:p.h);
+    r.setAttribute('rx',p.frame?10:6);
+    if(p.frame) g.classList.add('box');
     const c=COLOR[n.view]||COLOR.pending;
     r.setAttribute('fill',n.view==='completed'?'rgba(34,197,94,.14)':
                           n.view==='in_progress'?'rgba(59,130,246,.2)':
@@ -649,7 +718,13 @@ function renderGoal(goal,sess,width,size){
       svg.querySelectorAll('.edge').forEach(o=>{o.classList.remove('lit');o.classList.remove('dim');});
     });
     svg.appendChild(g);
-  });
+  };
+  // boxes first, outermost first, so the edges and steps inside them lie on top
+  const nest=id=>{ let d=0; for(let q=goal.nodes.find(m=>m.id===id);q&&q.parent;q=goal.nodes.find(m=>m.id===q.parent)) d++; return d; };
+  const isBox=n=>L.pos[n.id]&&L.pos[n.id].frame;
+  goal.nodes.filter(isBox).sort((x,y)=>nest(x.id)-nest(y.id)).forEach(drawNode);
+  drawEdges();
+  goal.nodes.filter(n=>!isBox(n)).forEach(drawNode);
   return svg;
 }
 
@@ -970,6 +1045,16 @@ function drawFocus(){
   const W=vb[2]+40, H=vb[3]+40, ar=body.clientWidth/Math.max(1,body.clientHeight);
   let w=W, h=H; if(w/h<ar) w=h*ar; else h=w/ar;
   FOCUS.base={x:vb[0]-20-(w-W)/2,y:vb[1]-20-(h-H)/2,w:w,h:h};
+  if(FOCUS.anchor){
+    const a=FOCUS.anchor, cr=svg.querySelector(`.node[data-id="${CSS.escape(a.id)}"] .chip rect`);
+    if(cr&&FOCUS.view){
+      const X=+cr.getAttribute('x')+(+cr.getAttribute('width')), Y=+cr.getAttribute('y'), v=FOCUS.view;
+      // across it stays where the finger was; down, the box moves up near the
+      // top edge, so what it opened fills the screen below it
+      FOCUS.view={x:X-a.fx*v.w,y:Y-Math.min(a.fy,0.12)*v.h,w:v.w,h:v.h};
+    }
+    FOCUS.anchor=null;
+  }
   if(!FOCUS.view) FOCUS.view=firstView(svg,goal,vb);
   applyView();
   const live=goal.nodes.filter(n=>n.view!=='abandoned');
@@ -991,7 +1076,8 @@ function firstView(svg,goal,vb){
     ||goal.nodes.find(n=>['in_progress','blocked','stalled'].includes(n.view))
     ||goal.nodes.find(n=>n.view!=='completed'&&n.view!=='abandoned')||goal.nodes[0];
   const box=open&&svg.querySelector(`.node[data-id="${CSS.escape(open.id)}"] rect`);
-  const cx=box?+box.getAttribute('x')+(+box.getAttribute('width'))/2:vb[0]+vb[2]/2;
+  // a box's header is read from its left, so a wide box is centred on its start
+  const cx=box?+box.getAttribute('x')+Math.min(+box.getAttribute('width'),SIZE.large.nodeW)/2:vb[0]+vb[2]/2;
   const cy=box?+box.getAttribute('y'):vb[1];
   const x=Math.max(vb[0]-20,Math.min(cx-bw/2,vb[0]+vb[2]+20-bw));
   // the top of the graph when the node is on the first screen, else the node a third down
