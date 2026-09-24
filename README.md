@@ -73,6 +73,11 @@ There the mouse wheel zooms around the pointer, a drag pans, a double-click
 fits the whole graph again, and Esc or the ✕ closes it. A graph of a hundred
 nodes is readable that way, and still updates while it is open.
 
+There is room to spare, so the nodes are drawn larger than in the card, with up
+to three lines of each subject instead of one clipped line. When the whole
+graph would only fit by shrinking that text below reading size, it opens at
+full size around the node being worked on, and you pan to the rest.
+
 ## On your phone
 
 The page fits a phone: one goal at a time, thumb-sized buttons, and the
