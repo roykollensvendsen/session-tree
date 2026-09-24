@@ -81,6 +81,10 @@ goal, a pager shows one decomposition at a time — swipe left or right, tap a
 dot, or use the arrow keys on a keyboard; "alle" shows every goal at once
 again. The page you were on is remembered per session.
 
+A tap on a node opens its popover. It is always placed wholly on the screen,
+next to the node where there is room, and scrolls inside itself when it is
+taller than the screen; that holds when the page is pinched in too.
+
 The server listens on localhost only. To reach it from a phone, bind it to
 your [Tailscale](https://tailscale.com) address instead, so that only devices
 on your own tailnet can connect:

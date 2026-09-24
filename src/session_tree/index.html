@@ -93,8 +93,12 @@
 
   .tip{position:fixed;z-index:60;max-width:390px;background:#0b0e13;color:var(--ink);
        border:1px solid #33404f;border-radius:8px;padding:9px 11px;font-size:11.5px;
-       box-shadow:0 12px 34px rgba(0,0,0,.6);pointer-events:none;opacity:0;transition:opacity .1s;line-height:1.5}
+       box-shadow:0 12px 34px rgba(0,0,0,.6);pointer-events:none;opacity:0;transition:opacity .1s;line-height:1.5;
+       overflow:auto;overscroll-behavior:contain}
   .tip.on{opacity:1}
+  /* opened by a finger: it takes the touch, so a swipe scrolls it and a tap,
+     which leaves the node, closes it */
+  .tip.on.touch{pointer-events:auto}
   .tip h4{margin:0 0 5px;font-size:12px}
   .tip p{margin:5px 0;color:#b9c4d4;white-space:pre-wrap}
   .tip .row{color:var(--dim);font-size:10.5px;margin-top:5px;border-top:1px solid #222b36;padding-top:5px}
@@ -172,7 +176,6 @@
     .pager .dots i{width:14px;height:14px}
     #focus .fhint{display:none}
     #focus .fhead b{font-size:12px}
-    .tip{max-width:calc(100vw - 32px)}
   }
 </style>
 </head>
@@ -276,15 +279,60 @@ function ago(s){ s=Math.max(0,Math.round(s));
 function dur(ms){ return ms==null?'':ago(ms/1000); }
 function esc(s){ return (s||'').replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c])); }
 
-function showTip(e,html){
-  tip.innerHTML=html; tip.classList.add('on');
+/* The part of the page actually on the screen. A pinched phone shows only a
+   piece of the layout, and a popover placed against the whole layout lands
+   where nobody can see it. Coordinates are the ones clientX and a fixed
+   element's left share. */
+const TIP_MARGIN=8, TIP_GAP=12, TIP_MAX_W=390, TIP_MIN_H=80;
+function visibleArea(){
+  const v=window.visualViewport;
+  return v?{x:v.offsetLeft,y:v.offsetTop,w:v.width,h:v.height}:{x:0,y:0,w:innerWidth,h:innerHeight};
+}
+/* Where a w x h popover goes next to the anchor a (a node's box, or the bare
+   pointer as a box of no size): below it, else above, else beside it, and in
+   every case clamped so that all of it is inside the visible area vp. When no
+   side has room it takes the larger of below and above and is cut to that
+   height, to scroll inside: covering the node would put the tap that opened
+   it on the popover instead, which reads as leaving the node and closes it. */
+function placeTip(a,w,h,vp){
+  const left=vp.x+TIP_MARGIN, top=vp.y+TIP_MARGIN;
+  const right=vp.x+vp.w-TIP_MARGIN, bottom=vp.y+vp.h-TIP_MARGIN;
+  const clampX=x=>Math.max(left,Math.min(x,right-w));
+  const clampY=y=>Math.max(top,Math.min(y,bottom-h));
+  const alongX=()=>clampX(a.left+w<=right?a.left:a.right-w);
+  const below=bottom-a.bottom-TIP_GAP, above=a.top-TIP_GAP-top;
+  if(h<=below) return {x:alongX(),y:a.bottom+TIP_GAP,h:h};
+  if(h<=above) return {x:alongX(),y:a.top-TIP_GAP-h,h:h};
+  if(a.right+TIP_GAP+w<=right) return {x:a.right+TIP_GAP,y:clampY(a.top),h:h};
+  if(a.left-TIP_GAP-w>=left) return {x:a.left-TIP_GAP-w,y:clampY(a.top),h:h};
+  const cut=Math.min(h,Math.max(below,above,TIP_MIN_H));
+  const y=below>=above?a.bottom+TIP_GAP:a.top-TIP_GAP-cut;
+  return {x:alongX(),y:Math.max(top,Math.min(y,bottom-cut)),h:cut};
+}
+/* A finger hides what it taps and gives no pointer to follow, so a tapped node
+   anchors the popover by its box; a mouse anchors it at the pointer. */
+let TOUCH=false;
+document.addEventListener('pointerdown',e=>{ TOUCH=e.pointerType!=='mouse'; },{capture:true,passive:true});
+document.addEventListener('pointermove',e=>{ if(e.pointerType==='mouse') TOUCH=false; },{capture:true,passive:true});
+function showTip(e,html,anchor){
+  const vp=visibleArea();
+  tip.innerHTML=html; tip.scrollTop=0;
+  tip.classList.toggle('touch',TOUCH); tip.classList.add('on');
+  // measured at the top-left corner, so its old place cannot squeeze its width
+  tip.style.left=vp.x+TIP_MARGIN+'px'; tip.style.top=vp.y+TIP_MARGIN+'px';
+  tip.style.maxWidth=Math.min(TIP_MAX_W,vp.w-2*TIP_MARGIN)+'px';
+  tip.style.maxHeight=(vp.h-2*TIP_MARGIN)+'px';
   const r=tip.getBoundingClientRect();
-  let x=e.clientX+14, y=e.clientY+14;
-  if(x+r.width>innerWidth-10) x=e.clientX-r.width-14;
-  if(y+r.height>innerHeight-10) y=Math.max(10,e.clientY-r.height-14);
-  tip.style.left=x+'px'; tip.style.top=y+'px';
+  const a=TOUCH&&anchor?anchor.getBoundingClientRect()
+    :{left:e.clientX,right:e.clientX,top:e.clientY,bottom:e.clientY};
+  const at=placeTip(a,r.width,r.height,vp);
+  tip.style.left=at.x+'px'; tip.style.top=at.y+'px'; tip.style.maxHeight=at.h+'px';
 }
 const hideTip=()=>tip.classList.remove('on');
+// a popover a finger opened belongs to where the page was; moving it closes it
+const dropTouchTip=()=>{ if(TOUCH&&tip.classList.contains('on')){ hideTip(); POINTER=null; } };
+addEventListener('scroll',dropTouchTip,{passive:true});
+if(window.visualViewport) visualViewport.addEventListener('resize',dropTouchTip);
 
 /* A live session redraws the whole graph each time its transcript grows, which
    replaces the node under a resting pointer with one that has seen no pointer
@@ -447,7 +495,7 @@ function renderGoal(goal,sess,width){
       showTip(e,`<h4>#${n.id} · ${esc(n.subject)}</h4>
         <div style="color:${COLOR[n.view]};font-size:11px;font-weight:600">${LABEL[n.view]||n.view}</div>
         ${n.description?`<p>${esc(n.description)}</p>`:''}${waiting}${time}${files}${bad}
-        <div class="row">${esc(sess.project)}${sess.branch?' · '+esc(sess.branch):''}</div>`);
+        <div class="row">${esc(sess.project)}${sess.branch?' · '+esc(sess.branch):''}</div>`,r);
       svg.querySelectorAll('.node').forEach(o=>o.classList.toggle('dim',o.dataset.id!==n.id &&
         !(n.blockedBy||[]).includes(o.dataset.id) && !(n.blocks||[]).includes(o.dataset.id)));
       svg.querySelectorAll('.edge').forEach(o=>{
@@ -572,7 +620,7 @@ function turnStrip(s, until){
       const files=(t.files||[]).length?`<div class="row">rørte ${esc([...new Set(t.files)].join(', '))}</div>`:'';
       const bad=(t.failures||[]).length?`<div class="row" style="color:#f0a8a8">feilet: ${esc(t.failures[0])}</div>`:'';
       showTip(e,`<h4>tur · ${LABEL[t.status]||t.status}</h4>
-        <div style="color:var(--dim);font-size:11px">${t.durationMs!=null?dur(t.durationMs):'—'}${t.startedMs?' · '+clock(t.startedMs):''}</div>${files}${bad}`);
+        <div style="color:var(--dim);font-size:11px">${t.durationMs!=null?dur(t.durationMs):'—'}${t.startedMs?' · '+clock(t.startedMs):''}</div>${files}${bad}`,seg);
     });
     seg.addEventListener('mouseleave',hideTip);
     strip.appendChild(seg);
