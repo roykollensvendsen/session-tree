@@ -49,3 +49,11 @@ def test_an_unfolded_breakdown_is_a_box_around_its_steps():
     assert "frame" in body, "no box is drawn around the steps"
     assert "L.holds" in body, "a step still draws a wire to the box that holds it"
     assert "inner" in function("layoutNested"), "a box is not sized from the steps inside it"
+
+
+def test_an_edge_to_a_folded_step_is_drawn_to_its_box():
+    """Folding hides the step, not the dependency: the edge goes to the box holding it."""
+    assert "liftEdges(" in function("renderGoal"), "edges to hidden steps are dropped with them"
+    body = function("liftEdges")
+    assert "hidden" in body, "an edge end is not moved off a hidden step"
+    assert "depth" in body, "the bands are not worked out again with the moved edges"

@@ -533,6 +533,34 @@ function hiddenBy(goal,sess){
   goal.nodes.forEach(n=>{ const folded=n.breakdown&&isFolded(sess,n); if(folded) hide(n.id); });
   return hidden;
 }
+/* A goal with some steps folded away. Folding hides a step, not what it
+   depends on: an edge to or from a hidden step is drawn to the nearest node
+   still shown that holds it, so a folded box waits on what its steps wait on.
+   An edge that would then start and end on the same node is the breakdown's
+   own and is left out, and the bands are worked out again with the moved
+   edges, since the server's were for everything unfolded. */
+function liftEdges(goal,hidden){
+  const all=Object.fromEntries(goal.nodes.map(n=>[n.id,n]));
+  const shown=id=>{ let n=all[id]; while(n&&hidden.has(n.id)) n=all[n.parent]; return n?n.id:null; };
+  const into={}, out={};
+  goal.nodes.forEach(n=>(n.blockedBy||[]).forEach(dep=>{
+    const a=shown(dep), b=shown(n.id);
+    if(!a||!b||a===b) return;
+    (into[b]=into[b]||new Set()).add(a); (out[a]=out[a]||new Set()).add(b);
+  }));
+  const nodes=goal.nodes.filter(n=>!hidden.has(n.id))
+    .map(n=>({...n,blockedBy:[...(into[n.id]||[])],blocks:[...(out[n.id]||[])]}));
+  const byId=Object.fromEntries(nodes.map(n=>[n.id,n])), depth={};
+  const walk=(id,seen)=>{
+    if(id in depth) return depth[id];
+    if(seen.has(id)) return 0;
+    const next=new Set(seen).add(id);
+    const up=byId[id].blockedBy.filter(d=>d in byId);
+    return depth[id]=up.length?1+Math.max(...up.map(d=>walk(d,next))):0;
+  };
+  nodes.forEach(n=>walk(n.id,new Set()));
+  return {...goal,nodes:nodes,depth:depth};
+}
 function toggleFold(sess,n){
   FOLD[foldKey(sess,n)]=!isFolded(sess,n);
   remember('st.fold',JSON.stringify(FOLD));
@@ -556,7 +584,7 @@ function chipOf(n){
 
 function renderGoal(goal,sess,width,size){
   const hidden=hiddenBy(goal,sess);
-  if(hidden.size) goal={...goal,nodes:goal.nodes.filter(n=>!hidden.has(n.id))};
+  if(hidden.size) goal=liftEdges(goal,hidden);
   const nested=goal.nodes.some(n=>n.parent&&goal.nodes.some(m=>m.id===n.parent));
   const L=nested?layoutNested(goal,width,size):layout(goal,width,size), NS='http://www.w3.org/2000/svg';
   const svg=document.createElementNS(NS,'svg');
