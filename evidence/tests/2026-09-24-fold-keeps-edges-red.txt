@@ -1,0 +1,4 @@
+# Red before the fix: b18f91a, 2026-09-24T12:21:53Z
+# In the browser: #97 unfolded has edges 96>99 99>100 100>101 101>116; folded it has none.
+FAILED tests/test_breakdowns_view.py::test_an_edge_to_a_folded_step_is_drawn_to_its_box
+1 failed, 5 passed in 0.03s
