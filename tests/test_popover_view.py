@@ -52,3 +52,11 @@ def test_the_focused_graph_is_drawn_larger_than_the_card():
     assert "SIZE.large" in function("drawFocus"), "the focus draws at the card's size"
     assert "SIZE.card" in function("render"), "the card no longer names its own size"
     assert "wrapLines(" in function("renderGoal"), "a subject is not wrapped onto several lines"
+
+
+def test_the_popover_lets_the_edges_under_it_show():
+    """A popover over the graph must not hide the wires it is explaining."""
+    rule = re.search(r"\.tip\{[^}]*\}", PAGE).group(0)
+    colour = re.search(r"background:rgba\(\s*[\d.]+\s*,\s*[\d.]+\s*,\s*[\d.]+\s*,\s*([\d.]+)\s*\)", rule)
+    assert colour, "the popover's background is solid"
+    assert float(colour.group(1)) < 1, "the popover's background is solid"
