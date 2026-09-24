@@ -13,8 +13,9 @@ description: >-
   view, says they have lost track of what you were doing or what they were
   doing, wants to watch several sessions at once, asks where the work stands, or
   wants to replay, scrub through, rewind or review what happened earlier in a
-  session. Also read it before decomposing a task, because the shape of the
-  graph is decided there.
+  session. Also read it before starting any piece of work longer than a step or
+  two: the task list you keep is what draws the graph, and it has to stay
+  current and readable by someone who was not in the conversation.
 ---
 
 # Session tree
@@ -69,13 +70,30 @@ nothing says why.
 
 **The graph is your decomposition. Nothing else supplies it.** A session that
 never calls `TaskCreate` shows up as a card with no picture — correctly, because
-nothing knows what it was trying to do. So when work is worth watching:
+nothing knows what it was trying to do. So do it always, for any piece of work
+longer than a step or two, and keep it true for as long as the work lasts:
 
 - **Decompose before starting**, not while finishing. A node is a piece of work
   with an outcome someone could check, not a keystroke.
 - **Wire the real dependencies** with `addBlockedBy`. The vertical axis *is*
   those edges: it is the order the work has to happen in, and a graph with no
   edges collapses into a list, which is what the terminal already gives you.
+- **Keep it current.** Start a node before working on it, and complete it once
+  it is checked rather than when it feels done. Each new request from the user
+  becomes a node of its own, and a changed plan changes the nodes. A graph that
+  drifts from the work shows what was planned, not what is happening.
+- **Write the subject for someone who was not there, and the description for
+  whoever does the work.** A node has two readers. The person watching the graph
+  has not read the conversation and may not be the one who asked, and the
+  subject is all they see at a glance. So the subject is an outcome someone could
+  check, in plain words, naming the thing itself. "The threshold box links to the
+  figure that details it" is a subject; "work on figure 1" and "fix T16 driver"
+  are not. Goal names follow the same rule: say what the goal is for, and for
+  whom. The agent doing the work needs the opposite: the file, the branch, the
+  commit, the command, and how it will know it is done. That goes in the
+  description, which the popover shows. Open it with one plain sentence, then
+  give the working detail. Nothing the work depends on should be dropped to make
+  the graph readable. It moves to where it does not get in the way.
 - **Put separate goals on separate graphs** with `metadata: {"goal": "<name>"}`.
   Without it the view falls back to connected components, which is usually right
   and occasionally merges two unrelated goals that happen to share a node.
