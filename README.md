@@ -192,6 +192,25 @@ on its own and lights the node. The same place has an address of its own,
 `?s=<session id>&n=<node id>`, so a question can be linked to, and the list
 shows each session's working directory, so the terminal it runs in can be found.
 
+## A breakdown folded into its node
+
+When an agent hands part of a goal on, the steps of that part say which node
+they belong to: `metadata: {"parent": "<task id>"}`. The view then draws them
+folded into that node, which carries **`▸ 3/5`** (done and total) in the colour
+of the worst of its steps, so a red step still shows. A tap unfolds them in
+place, and the chip turns to `▾`; a second tap folds them again, and the choice
+is remembered. If a node outside the breakdown depends on one of its steps, the
+breakdown is drawn unfolded from the start, because folding would hide that
+dependency. A node that is done while one of its steps is still open says so
+with a `!` on the chip.
+
+Work handed to **another session** is linked rather than folded. The other
+session's steps carry `"parent": "<session id>#<task id>"`, or the node that
+handed the work on carries `"session": "<session id>"`. The node gets
+**`↗ 2/4`**, and a tap opens the other session's goal; that goal's card shows
+**`↖`** with the node it serves, and a tap goes back. A `parent` that names a
+node or session that does not exist is listed on the card as a broken link.
+
 ## Replay
 
 `⏱ replay` on a session header turns the graph into a recording of itself. The

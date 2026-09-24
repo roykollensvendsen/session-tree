@@ -1,0 +1,18 @@
+# Red before the code: 32f60b2 with the tests, and _link_sessions as an empty stub, 2026-09-24T11:28:43Z
+
+FAILED tests/test_breakdowns.py::test_a_step_names_the_node_it_belongs_to - K...
+FAILED tests/test_breakdowns.py::test_a_step_is_drawn_with_its_parents_goal
+FAILED tests/test_breakdowns.py::test_a_breakdown_is_counted_on_its_node - Ke...
+FAILED tests/test_breakdowns.py::test_a_breakdown_nothing_outside_uses_is_folded
+FAILED tests/test_breakdowns.py::test_a_breakdown_used_from_outside_is_drawn_unfolded
+FAILED tests/test_breakdowns.py::test_an_edge_from_the_parent_itself_does_not_unfold_it
+FAILED tests/test_breakdowns.py::test_the_worst_step_colours_the_breakdown - ...
+FAILED tests/test_breakdowns.py::test_a_node_done_while_a_step_is_open_says_so
+FAILED tests/test_breakdowns.py::test_a_parent_that_does_not_exist_is_a_broken_link
+FAILED tests/test_breakdowns.py::test_work_in_another_session_links_both_ways
+FAILED tests/test_breakdowns.py::test_a_node_can_point_at_the_session_doing_its_work
+FAILED tests/test_breakdowns.py::test_a_link_to_a_missing_session_is_a_broken_link
+FAILED tests/test_breakdowns_view.py::test_a_folded_breakdown_is_left_out_of_the_drawing
+FAILED tests/test_breakdowns_view.py::test_the_chip_folds_and_unfolds_and_remembers
+FAILED tests/test_breakdowns_view.py::test_work_elsewhere_links_there_and_back
+15 failed, 1 passed in 0.11s

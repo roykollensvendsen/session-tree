@@ -74,3 +74,21 @@ name = "a needs input line counts only when the session is idle"
 file = "src/session_tree/state.py"
 find = '^\s*if idle:$'
 replace = 'if True:'
+
+[[rule]]
+name = "a step is drawn with its parents goal"
+file = "src/session_tree/state.py"
+find = 'if parent and parent in sets\.parent:'
+replace = 'if False:'
+
+[[rule]]
+name = "a breakdown nothing outside uses is folded"
+file = "src/session_tree/state.py"
+find = '"folded": not used_from_outside,'
+replace = '"folded": False,'
+
+[[rule]]
+name = "the worst step colours the breakdown"
+file = "src/session_tree/state.py"
+find = 'summary\["worst"\] = _worst\(\[s\.get\("view", s\["status"\]\) for s in live_inside\]\)'
+replace = 'summary["worst"] = "pending"'

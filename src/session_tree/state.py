@@ -88,6 +88,10 @@ class Node(TypedDict, total=False):
     failures: list[str]
     agents: list[dict[str, Any]]
     ask: str | None
+    parent: str | None
+    session: str | None
+    breakdown: dict[str, Any]
+    remote: dict[str, Any]
 
 
 def epoch_ms(iso: str | None) -> int | None:
@@ -202,6 +206,8 @@ class TranscriptReader:
                 "failures": [],
                 "agents": [],
                 "ask": None,
+                "parent": None,
+                "session": None,
             }
         return self.tasks[task_id]
 
@@ -241,9 +247,11 @@ class TranscriptReader:
             return
         if meta.get("goal"):
             node["goal"] = str(meta["goal"])
-        if "ask" in meta:
-            # null or an empty string clears it; anything else is the question
-            node["ask"] = str(meta["ask"]).strip() or None if meta["ask"] else None
+        # null or an empty string clears one of these; anything else is its value:
+        # the question waiting, the node a step belongs to, the session doing it
+        for key in ("ask", "parent", "session"):
+            if key in meta:
+                node[key] = str(meta[key]).strip() or None if meta[key] else None
 
     def _apply_status(
         self,
@@ -532,6 +540,12 @@ def _group(nodes: list[Node]) -> dict[str, list[Node]]:
             if dep in sets.parent:
                 sets.union(node["id"], dep)
 
+    for node in nodes:
+        parent = node.get("parent")
+        # RULE: a step is drawn with its parents goal
+        if parent and parent in sets.parent:
+            sets.union(parent, node["id"])
+
     first_of_goal: dict[str, str] = {}
     for node in nodes:
         goal = node["goal"]
@@ -574,11 +588,158 @@ def _components(nodes: list[Node]) -> list[dict[str, Any]]:
                 # Ten nodes with no blockedBy between them draw as a graph and are
                 # a list. The view says so rather than letting the shape imply it.
                 "hasEdges": any(m["blockedBy"] for m in members),
-                "danglingEdges": [],
+                "danglingEdges": _hold_breakdowns(members, {n["id"] for n in nodes}),
             }
         )
     goals.sort(key=lambda g: min((int(n["id"]) for n in g["nodes"] if n["id"].isdigit()), default=0))
     return goals
+
+
+# Worst first: a folded breakdown shows the most urgent state among its steps.
+SEVERITY = ("blocked", "stalled", "in_progress", "waiting", "pending", "completed")
+
+
+def _worst(views: list[str]) -> str:
+    """The most urgent of these states, or pending when there is none."""
+    ranked = [v for v in views if v in SEVERITY]
+    return min(ranked, key=SEVERITY.index) if ranked else "pending"
+
+
+def _summary(steps: list[Node]) -> dict[str, Any]:
+    """Done, total and worst state over steps, leaving abandoned ones out."""
+    live = [s for s in steps if s["status"] != "abandoned"]
+    return {
+        "done": sum(1 for s in live if s["status"] == "completed"),
+        "total": len(live),
+        "worst": _worst([s.get("view", s["status"]) for s in live]),
+    }
+
+
+def _steps_below(children: dict[str, list[str]], node_id: str) -> set[str]:
+    """Every step under a node: its children, theirs, and so on."""
+    found: set[str] = set()
+    stack = list(children.get(node_id, []))
+    while stack:
+        step = stack.pop()
+        if step not in found:
+            found.add(step)
+            stack.extend(children.get(step, []))
+    return found
+
+
+def _hold_breakdowns(members: list[Node], known: set[str]) -> list[str]:
+    """Give every node its breakdown, and return the links that point nowhere.
+
+    A breakdown is the steps that name a node as their `parent`, and theirs in
+    turn. It is folded unless a node outside it has an edge to or from one of
+    its steps, since folding would then hide a dependency. The parent's own
+    edges to its steps are the breakdown itself, not a use from outside.
+    """
+    by_id = {m["id"]: m for m in members}
+    children: dict[str, list[str]] = {}
+    broken: list[str] = []
+    for m in members:
+        ref = m.get("parent")
+        if not ref or "#" in ref:
+            continue  # a node in another session: _link_sessions ties those
+        if ref in by_id:
+            children.setdefault(ref, []).append(m["id"])
+        elif ref not in known:
+            broken.append(f"#{m['id']} → #{ref}")
+
+    edges = {(m["id"], other) for m in members for other in m["blockedBy"] + m["blocks"]}
+    for owner_id, direct in children.items():
+        inside = _steps_below(children, owner_id)
+        used_from_outside = any((a in inside) != (b in inside) and owner_id not in (a, b) for a, b in edges)
+        owner = by_id[owner_id]
+        summary = _summary([by_id[c] for c in direct])
+        live_inside = [by_id[s] for s in inside if by_id[s]["status"] != "abandoned"]
+        # RULE: the worst step colours the breakdown
+        summary["worst"] = _worst([s.get("view", s["status"]) for s in live_inside])
+        owner["breakdown"] = {
+            "children": sorted(direct, key=lambda i: int(i) if i.isdigit() else 0),
+            **summary,
+            # RULE: a breakdown nothing outside uses is folded
+            "folded": not used_from_outside,
+            "disagrees": owner["status"] == "completed" and summary["done"] < summary["total"],
+        }
+    return broken
+
+
+def _link_by_parent(sessions: list[dict[str, Any]], by_session: dict[str, dict[str, Any]]) -> None:
+    """Steps that name a node in another session, as `<session id>#<task id>`."""
+    nodes = {
+        (s["sessionId"], n["id"]): (goal, n)
+        for s in sessions
+        for goal in s.get("goals", [])
+        for n in goal["nodes"]
+    }
+    for s in sessions:
+        for goal in s.get("goals", []):
+            for ref in sorted({n["parent"] for n in goal["nodes"] if "#" in (n.get("parent") or "")}):
+                session_id, _, task_id = ref.partition("#")
+                if session_id not in by_session or (session_id, task_id) not in nodes:
+                    goal["danglingEdges"].append(f"→ {ref}")
+                    continue
+                host_goal, owner = nodes[(session_id, task_id)]
+                first = next(n for n in goal["nodes"] if n.get("parent") == ref)
+                owner["remote"] = {
+                    "sessionId": s["sessionId"],
+                    "nodeId": first["id"],
+                    "title": goal["title"],
+                    **_summary(goal["nodes"]),
+                }
+                goal["upstream"] = {
+                    "sessionId": session_id,
+                    "nodeId": task_id,
+                    "subject": owner["subject"],
+                    "title": host_goal["title"],
+                }
+
+
+def _link_by_session(sessions: list[dict[str, Any]], by_session: dict[str, dict[str, Any]]) -> None:
+    """Nodes that name the session doing their work, as `session: <id>`."""
+    for s in sessions:
+        for goal in s.get("goals", []):
+            for n in goal["nodes"]:
+                target = n.get("session")
+                if not target or "remote" in n:
+                    continue
+                other = by_session.get(target)
+                if other is None:
+                    goal["danglingEdges"].append(f"#{n['id']} → økt {target}")
+                    continue
+                work = [m for g in other.get("goals", []) for m in g["nodes"]]
+                first_goal = other["goals"][0] if other.get("goals") else None
+                n["remote"] = {
+                    "sessionId": target,
+                    "nodeId": work[0]["id"] if work else None,
+                    "title": first_goal["title"] if first_goal else other.get("name", ""),
+                    **_summary(work),
+                }
+                if first_goal is not None:
+                    first_goal.setdefault(
+                        "upstream",
+                        {
+                            "sessionId": s["sessionId"],
+                            "nodeId": n["id"],
+                            "subject": n["subject"],
+                            "title": goal["title"],
+                        },
+                    )
+
+
+def _link_sessions(sessions: list[dict[str, Any]]) -> None:
+    """Tie work in one session to the node in another that handed it on.
+
+    The steps can name that node, as `parent: "<session id>#<task id>"`, or the
+    node can name the session, as `session: "<session id>"`. Either end is
+    enough. The node gets `remote`, the work's goal gets `upstream`, and a link
+    to a session or node that is not there is listed on the card as broken.
+    """
+    by_session = {s["sessionId"]: s for s in sessions}
+    _link_by_parent(sessions, by_session)
+    _link_by_session(sessions, by_session)
 
 
 def _apply_views(nodes: list[Node], quiet: float, now: float) -> None:
@@ -750,5 +911,6 @@ def build(now: float | None = None) -> dict[str, Any]:
     except Exception as error:  # noqa: BLE001 - one agent must not hide the other
         sys.stderr.write(f"codex: {error!r}\n")
 
+    _link_sessions(sessions)
     sessions.sort(key=lambda s: (not s["active"], not s["alive"], -(s.get("startedAt") or 0)))
     return {"now": now, "sessions": sessions}
