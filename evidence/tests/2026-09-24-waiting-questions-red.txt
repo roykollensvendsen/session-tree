@@ -1,0 +1,12 @@
+# Red before the code: 6026d85 with the tests and stubs only, 2026-09-24T11:09:29Z
+# _questions returns [] and _attention ignores asking.
+
+FAILED tests/test_state.py::test_an_open_question_box_is_a_question_waiting
+FAILED tests/test_state.py::test_a_needs_input_line_counts_only_when_the_session_is_idle
+FAILED tests/test_state.py::test_a_node_marked_with_ask_carries_its_question
+FAILED tests/test_state.py::test_a_session_with_a_question_asks_rather_than_waits
+FAILED tests/test_questions_view.py::test_a_session_asking_is_marked_apart_from_one_idle
+FAILED tests/test_questions_view.py::test_a_node_with_a_question_carries_the_mark_and_the_question
+FAILED tests/test_questions_view.py::test_the_top_of_the_page_lists_every_question_waiting
+FAILED tests/test_questions_view.py::test_a_question_has_an_address_that_goes_to_it
+8 failed, 25 passed in 0.10s

@@ -142,6 +142,23 @@
   .att{font-size:10px;padding:1.5px 7px;border-radius:99px;white-space:nowrap;font-weight:600}
   .att.waiting{color:#0e1116;background:#d8b4fe}
   .att.stalled{color:#0e1116;background:var(--stall);animation:nudge 2s infinite}
+  /* a question waiting: the one request of the watcher that names what it wants */
+  .att.asking{color:#1a1300;background:#facc15}
+  .qrow{font-size:11.5px;color:#f5e6a8;padding:6px 10px;margin:0 0 8px;border-left:2px solid #facc15;
+      background:rgba(250,204,21,.07);border-radius:0 5px 5px 0;cursor:pointer}
+  .qrow b{color:#facc15}
+  .gtitle .q{color:#facc15;font-weight:700;margin-right:5px}
+  .node.asks rect{stroke:#facc15;stroke-width:2}
+  .node.lit rect{stroke:#facc15;stroke-width:3.5;filter:drop-shadow(0 0 7px rgba(250,204,21,.8))}
+  .tip .ask{color:#facc15;margin:5px 0;font-weight:600}
+  #asks{display:none;position:sticky;top:0;z-index:40;background:#1d1a0c;border-bottom:1px solid #5c4d12;
+      padding:7px 14px;font-size:12px;color:#f5e6a8}
+  #asks.on{display:block}
+  #asks summary{cursor:pointer;font-weight:700;color:#facc15;list-style:none;padding:3px 0}
+  #asks summary::-webkit-details-marker{display:none}
+  #asks a{display:block;color:#f5e6a8;text-decoration:none;padding:8px 0;border-top:1px solid #3a3212;line-height:1.45}
+  #asks a:hover{color:#fff}
+  #asks .where{color:#b9a760;font-size:11px;display:block}
   .agentrow{font-size:10.5px;color:var(--dim);padding:5px 10px 7px;margin:0 0 8px;
       border-left:2px solid #6b7a90;background:rgba(255,255,255,.028);border-radius:0 5px 5px 0}
   .agentrow b{color:#cbd6e6;font-weight:600}
@@ -170,7 +187,7 @@
     .sbody{padding:4px 10px 12px}
     .goal{flex:1 1 100%;min-width:0}
     .spath{display:none}
-    .shead{min-height:44px}
+    .shead{min-height:44px;gap:6px}
     .rp{flex-wrap:wrap}
     .rp button,.rbtn,.pager button,#focus button,.behind{min-height:40px;min-width:40px;padding:6px 12px;font-size:13px}
     .pager .dots i{width:14px;height:14px}
@@ -193,6 +210,7 @@
     <span><i style="background:var(--gone)"></i>forkastet</span>
   </span>
 </header>
+<div id="asks"></div>
 <div id="focus"><div class="fhead"><b id="ftitle"></b><span class="fhint">hjul eller knip = zoom · dra = panorér · dobbeltklikk = tilpass · Esc = lukk</span><span style="flex:1"></span><button id="ffit">tilpass</button><button id="fclose">✕</button></div><div class="fbody" id="fbody"></div></div>
 <main id="root"></main>
 <div class="tip" id="tip"></div>
@@ -476,6 +494,9 @@ function renderGoal(goal,sess,width,size){
     r.setAttribute('stroke-width',n.view==='in_progress'?2:1.2);
     if(n.view==='abandoned') r.setAttribute('stroke-dasharray','3 3');
     if(n.view==='in_progress') g.classList.add('pulsing');
+    // a question on a finished node was answered and never cleared
+    const asking=n.ask&&n.view!=='completed'&&n.view!=='abandoned';
+    if(asking) g.classList.add('asks');
     g.appendChild(r);
 
     const small=(x,y,text,px)=>{
@@ -512,6 +533,10 @@ function renderGoal(goal,sess,width,size){
     });
     if((n.failures||[]).length) small(p.x+p.w-2*size.idFont-6,p.y+size.idTop+1,'!',size.idFont).style.fill='#ef8a8a';
     if(n.view==='completed') small(p.x+p.w-size.idFont-4,p.y+size.idTop+1,'✓',size.idFont).style.fill='#22c55e';
+    if(asking){
+      const q=small(p.x+p.w-size.idFont-5,p.y+size.idTop+2,'?',size.idFont*1.5);
+      q.style.fill='#facc15'; q.style.fontWeight='700';
+    }
 
     g.addEventListener('mousemove',e=>{
       const waiting=(n.waitingOn||[]).length?
@@ -525,7 +550,7 @@ function renderGoal(goal,sess,width,size){
         `<div class="row" style="color:#f0a8a8">${n.failures.length} kommando${n.failures.length>1?'er':''} feilet · ${esc(n.failures[0])}</div>`:'';
       showTip(e,`<h4>#${n.id} · ${esc(n.subject)}</h4>
         <div style="color:${COLOR[n.view]};font-size:11px;font-weight:600">${LABEL[n.view]||n.view}</div>
-        ${n.description?`<p>${esc(n.description)}</p>`:''}${waiting}${time}${files}${bad}
+        ${asking?`<div class="ask">? ${esc(n.ask)}</div>`:''}${n.description?`<p>${esc(n.description)}</p>`:''}${waiting}${time}${files}${bad}
         <div class="row">${esc(sess.project)}${sess.branch?' · '+esc(sess.branch):''}</div>`,r);
       svg.querySelectorAll('.node').forEach(o=>o.classList.toggle('dim',o.dataset.id!==n.id &&
         !(n.blockedBy||[]).includes(o.dataset.id) && !(n.blocks||[]).includes(o.dataset.id)));
@@ -675,6 +700,7 @@ function renderSession(s){
   const empty=!goals.length&&!(s.turns||[]).length&&!s.active;
   const shut=collapsed.has(s.sessionId)||(empty&&!opened.has(s.sessionId));
   el.className='sess'+(s.active?'':' idle')+(shut?' closed':'')+(rp?' frozen':'');
+  el.id='s-'+s.sessionId;
 
   const head=document.createElement('div');
   head.className='shead';
@@ -685,6 +711,7 @@ function renderSession(s){
     <span class="sname">${esc(s.name||s.firstPrompt||'(uten navn)')}</span>
     <span class="spath">${esc(s.project)}${s.branch?' · '+esc(s.branch):''}</span>
     <span style="flex:1"></span>
+    ${s.attention==='asking'?`<span class="att asking" title="${s.questions.length} spørsmål venter på svar">? ${s.questions.length}</span>`:''}
     ${s.attention==='waiting'?'<span class="att waiting">venter på deg</span>':''}
     ${s.attention==='stalled'?'<span class="att stalled">står stille</span>':''}
     <span class="agent ${s.agent||'claude'}">${s.agent||'claude'}</span>
@@ -710,6 +737,14 @@ function renderSession(s){
   body.className='sbody';
 
   if(rp) body.appendChild(replayPanel(s,rp));
+  // the questions themselves, not only that there are some: the header says
+  // the session asks, this says what, and a tap goes to where it waits
+  (s.questions||[]).forEach(q=>{
+    const row=document.createElement('div'); row.className='qrow';
+    row.innerHTML=`<b>?</b> ${esc(q.text)}${q.node?` <span style="color:var(--faint)">· #${esc(q.node)}</span>`:''}`;
+    row.onclick=()=>goToQuestion(s.sessionId,q.node);
+    body.appendChild(row);
+  });
   if((s.agents||[]).length){
     const run=s.agents.filter(a=>a.running).length;
     const row=document.createElement('div');
@@ -756,7 +791,8 @@ function renderSession(s){
       const live=g.nodes.filter(n=>n.view!=='abandoned');
       const done=live.filter(n=>n.view==='completed').length;
       const card=document.createElement('div'); card.className='goal';
-      card.innerHTML=`<div class="gtitle">${esc(g.title)}</div>
+      const asks=g.nodes.filter(n=>n.ask&&n.view!=='completed'&&n.view!=='abandoned').length;
+      card.innerHTML=`<div class="gtitle">${asks?`<span class="q" title="${asks} spørsmål venter">?</span>`:''}${esc(g.title)}</div>
         <div class="gmeta">${done}/${live.length} ferdig${g.nodes.length>live.length?` · ${g.nodes.length-live.length} forkastet`:''}</div>
         <div class="bar"><b style="width:${live.length?done/live.length*100:0}%"></b></div>
         ${(g.danglingEdges||[]).length?`<div class="broken">⚠ peker på steg som ikke finnes: ${esc(g.danglingEdges.join(', '))}</div>`:''}
@@ -847,6 +883,10 @@ function drawFocus(){
   applyView();
   const live=goal.nodes.filter(n=>n.view!=='abandoned');
   document.getElementById('ftitle').textContent=`${goal.title} — ${live.filter(n=>n.view==='completed').length}/${live.length} ferdig · ${sess.project}`;
+  if(FOCUS.target){
+    const lit=svg.querySelector(`.node[data-id="${CSS.escape(FOCUS.target)}"]`);
+    if(lit) lit.classList.add('lit');
+  }
 }
 /* Fitting a wide graph onto a phone shrinks its text past reading, which is
    what the focus exists to avoid. So it opens fitted only when fitting keeps
@@ -856,7 +896,8 @@ const READABLE_SCALE=0.8;
 function firstView(svg,goal,vb){
   const body=fbox(), bw=body.clientWidth, bh=body.clientHeight;
   if(bw/FOCUS.base.w>=READABLE_SCALE) return {...FOCUS.base};
-  const open=goal.nodes.find(n=>['in_progress','blocked','stalled'].includes(n.view))
+  const open=(FOCUS.target&&goal.nodes.find(n=>n.id===FOCUS.target))
+    ||goal.nodes.find(n=>['in_progress','blocked','stalled'].includes(n.view))
     ||goal.nodes.find(n=>n.view!=='completed'&&n.view!=='abandoned')||goal.nodes[0];
   const box=open&&svg.querySelector(`.node[data-id="${CSS.escape(open.id)}"] rect`);
   const cx=box?+box.getAttribute('x')+(+box.getAttribute('width'))/2:vb[0]+vb[2]/2;
@@ -866,8 +907,9 @@ function firstView(svg,goal,vb){
   const y=cy+80<vb[1]+bh?vb[1]-20:Math.min(cy-bh/3,vb[1]+vb[3]+20-bh);
   return {x:x,y:y,w:bw,h:bh};
 }
-function openFocus(goal,sess){
+function openFocus(goal,sess,target){
   FOCUS.open=true; FOCUS.sessionId=sess.sessionId; FOCUS.title=goal.title; FOCUS.view=null; FOCUS.base=null;
+  FOCUS.target=target||null;
   document.getElementById('focus').classList.add('on');
   drawFocus();
 }
@@ -933,8 +975,57 @@ function closeFocus(){
   body.addEventListener('dblclick',fitFocus);
 })();
 
+/* Every question waiting, across sessions, in one place at the top: with
+   several sessions open, which one needs you is the question the page has to
+   answer first. Each entry is a link to where the question waits. */
+function goalOf(s,nodeId){ return nodeId?(s.goals||[]).find(g=>g.nodes.some(n=>n.id===nodeId)):null; }
+function askHref(sessionId,nodeId){
+  const q=new URLSearchParams(location.search); q.set('s',sessionId);
+  if(nodeId) q.set('n',nodeId); else q.delete('n');
+  return '?'+q.toString();
+}
+function renderAsks(data){
+  const bar=document.getElementById('asks');
+  const items=[];
+  data.sessions.forEach(s=>(s.questions||[]).forEach(q=>items.push({s:s,q:q})));
+  bar.classList.toggle('on',items.length>0);
+  const was=bar.querySelector('details');
+  const keepOpen=was?was.open:items.length<=3;
+  bar.innerHTML=items.length?`<details${keepOpen?' open':''}><summary>? ${items.length} venter på svar</summary>`
+    +items.map(({s,q})=>{
+      const g=goalOf(s,q.node);
+      return `<a href="${esc(askHref(s.sessionId,q.node))}" data-s="${esc(s.sessionId)}" data-n="${esc(q.node||'')}">
+        ${esc(q.text)}<span class="where">${esc(s.project)} · ${esc(s.name||s.firstPrompt||'(uten navn)').slice(0,60)}${g?' · '+esc(g.title):''}${q.node?' · #'+esc(q.node):''} — ${esc(s.cwd||'')}</span></a>`;
+    }).join('')+'</details>':'';
+  bar.querySelectorAll('a').forEach(a=>a.onclick=e=>{
+    e.preventDefault(); goToQuestion(a.dataset.s,a.dataset.n||null);
+  });
+}
+/* Go to where a question waits: unfold its session, turn its pager to the
+   goal, open that goal on its own around the node and light it. A question
+   with no node is the session's own, so the page scrolls to the session. */
+function goToQuestion(sessionId,nodeId){
+  const s=((LAST&&LAST.sessions)||[]).find(x=>x.sessionId===sessionId);
+  if(!s) return;
+  collapsed.delete(sessionId); opened.add(sessionId);
+  remember('st.collapsed',JSON.stringify([...collapsed]));
+  remember('st.opened',JSON.stringify([...opened]));
+  const goal=goalOf(s,nodeId);
+  if(goal){ PAGE[sessionId]=s.goals.indexOf(goal); remember('st.page',JSON.stringify(PAGE)); }
+  history.replaceState(null,'',askHref(sessionId,nodeId));
+  refresh();
+  if(goal) openFocus(goal,s,nodeId);
+  else{
+    if(FOCUS.open) closeFocus();
+    const el=document.getElementById('s-'+sessionId);
+    if(el) el.scrollIntoView({block:'start'});
+  }
+}
+let ARRIVED=false;
+
 function render(data){
   LAST=data;
+  renderAsks(data);
   // ?rp=<0..1> opens replay on the first active session at that point of its
   // span -- for screenshots, and for linking someone to a moment.
   const q=new URLSearchParams(location.search);
@@ -957,6 +1048,12 @@ function render(data){
   window.scrollTo(0,keep);
   if(FOCUS.open) drawFocus();
   rehover();
+  // ?s=<session>&n=<node> is where a question waits; go there once, on arrival
+  if(!ARRIVED){
+    ARRIVED=true;
+    const at=new URLSearchParams(location.search);
+    if(at.get('s')) goToQuestion(at.get('s'),at.get('n'));
+  }
 }
 
 let es;

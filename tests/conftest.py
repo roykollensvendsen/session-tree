@@ -137,6 +137,48 @@ class Transcript:
             }
         )
 
+    def say(self, text: str, at: int) -> None:
+        """Record something the agent wrote to the user, as plain text."""
+        self._write(
+            {
+                "type": "assistant",
+                "timestamp": stamp(at),
+                "message": {"role": "assistant", "content": [{"type": "text", "text": text}]},
+            }
+        )
+
+    def ask(self, question: str, at: int, *, answered_at: int | None = None) -> None:
+        """An AskUserQuestion box; it has an answer only when answered_at is given."""
+        self.counter += 1
+        use_id = f"toolu_{self.counter:04d}"
+        payload = {"questions": [{"question": question, "header": "Q", "options": []}]}
+        self._write(
+            {
+                "type": "assistant",
+                "timestamp": stamp(at),
+                "message": {
+                    "role": "assistant",
+                    "content": [
+                        {"type": "tool_use", "id": use_id, "name": "AskUserQuestion", "input": payload},
+                    ],
+                },
+            }
+        )
+        if answered_at is None:
+            return
+        self._write(
+            {
+                "type": "user",
+                "timestamp": stamp(answered_at),
+                "message": {
+                    "role": "user",
+                    "content": [
+                        {"type": "tool_result", "tool_use_id": use_id, "content": "answered"},
+                    ],
+                },
+            }
+        )
+
     def update(self, task_id: str, at: int, **fields: object) -> None:
         """Record a TaskUpdate carrying any of status, addBlockedBy, metadata."""
         self.counter += 1

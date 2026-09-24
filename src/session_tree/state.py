@@ -87,6 +87,7 @@ class Node(TypedDict, total=False):
     files: list[str]
     failures: list[str]
     agents: list[dict[str, Any]]
+    ask: str | None
 
 
 def epoch_ms(iso: str | None) -> int | None:
@@ -151,6 +152,10 @@ class TranscriptReader:
         self.pending_bash: dict[str, str] = {}
         #: Agent call id -> the node it was started from, and when.
         self.spawns: dict[str, dict[str, Any]] = {}
+        #: AskUserQuestion call id -> its question, while no answer has come.
+        self.open_asks: dict[str, str] = {}
+        #: What the agent last wrote to the user since the user last spoke.
+        self.last_text = ""
 
     def read(self) -> None:
         """Consume whatever has been appended since the last call."""
@@ -196,6 +201,7 @@ class TranscriptReader:
                 "files": [],
                 "failures": [],
                 "agents": [],
+                "ask": None,
             }
         return self.tasks[task_id]
 
@@ -204,9 +210,7 @@ class TranscriptReader:
         node["subject"] = payload.get("subject", "")
         node["description"] = payload.get("description", "")
         node["created"] = stamp
-        meta = payload.get("metadata")
-        if isinstance(meta, dict) and meta.get("goal"):
-            node["goal"] = str(meta["goal"])
+        self._apply_meta(node, payload.get("metadata"))
         node["history"].append({"at": stamp or "", "atMs": epoch_ms(stamp), "status": "pending"})
         self._event(stamp, "create", payload.get("subject", ""), task_id)
 
@@ -221,9 +225,7 @@ class TranscriptReader:
             node["description"] = str(payload["description"])
         if payload.get("owner"):
             node["owner"] = str(payload["owner"])
-        meta = payload.get("metadata")
-        if isinstance(meta, dict) and meta.get("goal"):
-            node["goal"] = str(meta["goal"])
+        self._apply_meta(node, payload.get("metadata"))
         for dep in payload.get("addBlockedBy") or []:
             if str(dep) not in node["blockedBy"]:
                 node["blockedBy"].append(str(dep))
@@ -231,6 +233,17 @@ class TranscriptReader:
             if str(dep) not in node["blocks"]:
                 node["blocks"].append(str(dep))
         self._apply_status(node, payload.get("status"), stamp, task_id)
+
+    @staticmethod
+    def _apply_meta(node: Node, meta: object) -> None:
+        """Take the keys the view reads from a task's metadata."""
+        if not isinstance(meta, dict):
+            return
+        if meta.get("goal"):
+            node["goal"] = str(meta["goal"])
+        if "ask" in meta:
+            # null or an empty string clears it; anything else is the question
+            node["ask"] = str(meta["ask"]).strip() or None if meta["ask"] else None
 
     def _apply_status(
         self,
@@ -271,6 +284,7 @@ class TranscriptReader:
         if not text or text.startswith("<") or any(n in text for n in noise):
             return
         self.turns += 1
+        self.last_text = ""  # whatever the agent asked, this is the answer
         if not self.first_prompt:
             self.first_prompt = text[:400]
         self._event(stamp, "prompt", text[:300])
@@ -291,7 +305,9 @@ class TranscriptReader:
 
         for block in _blocks(entry):
             kind = block.get("type")
-            if kind == "tool_use":
+            if kind == "text" and entry.get("type") == "assistant":
+                self.last_text = str(block.get("text") or "")
+            elif kind == "tool_use":
                 self._consume_use(block, stamp)
             elif kind == "tool_result":
                 self._consume_result(block)
@@ -304,6 +320,12 @@ class TranscriptReader:
             command = payload.get("command")
             if isinstance(command, str):
                 self.pending_bash[use_id] = command[:120]
+            return
+        if name == "AskUserQuestion":
+            asked = [
+                str(q.get("question") or "") for q in payload.get("questions") or [] if isinstance(q, dict)
+            ]
+            self.open_asks[use_id] = " / ".join(q for q in asked if q) or "a question"
             return
         if name == "Agent":
             self.spawns[use_id] = {
@@ -341,6 +363,8 @@ class TranscriptReader:
 
     def _consume_result(self, block: dict[str, Any]) -> None:
         use_id = block.get("tool_use_id")
+        # RULE: an answered question box is no longer waiting
+        self.open_asks.pop(str(use_id), None)
         spawn = self.spawns.get(str(use_id))
         if spawn is not None:
             spawn["endedMs"] = True  # a result means the agent has finished
@@ -596,7 +620,7 @@ def _sessions_on_disk() -> list[dict[str, Any]]:
     return found
 
 
-def _attention(declared: str, quiet: float, *, alive: bool) -> str:
+def _attention(declared: str, quiet: float, *, alive: bool, asking: bool = False) -> str:
     """What the session needs from a person, if anything.
 
     The register says busy or idle; the transcript's age says whether anything
@@ -607,11 +631,43 @@ def _attention(declared: str, quiet: float, *, alive: bool) -> str:
     """
     if not alive:
         return "ended"
+    if asking:
+        return "asking"
     if declared == "idle":
         return "waiting"
     if declared == "busy" and quiet > STALL_SECONDS:
         return "stalled"
     return "working"
+
+
+NEEDS_INPUT_RE = re.compile(r"^\s*needs input:\s*(.+?)\s*$", re.IGNORECASE | re.MULTILINE)
+
+
+def _questions(reader: TranscriptReader, *, idle: bool) -> list[dict[str, Any]]:
+    """Every question this session is waiting on the user to answer.
+
+    Three places carry one: a question box with no answer yet, a node the agent
+    marked with `ask`, and a `needs input:` line in what the agent last wrote.
+    The last counts only once the session is idle, since an agent still working
+    may answer it itself; and a node that is finished no longer asks, because a
+    question left on it was answered and never cleared.
+    """
+    found: list[dict[str, Any]] = [
+        {"source": "box", "text": text, "node": None} for text in reader.open_asks.values()
+    ]
+    found.extend(
+        {"source": "node", "text": node["ask"], "node": node["id"]}
+        for node in reader.tasks.values()
+        # RULE: a finished node no longer asks
+        if node.get("ask") and node["status"] not in ("completed", "abandoned")
+    )
+    # RULE: a needs input line counts only when the session is idle
+    if idle:
+        found.extend(
+            {"source": "needs-input", "text": match, "node": None}
+            for match in NEEDS_INPUT_RE.findall(reader.last_text)
+        )
+    return found
 
 
 def _describe(info: dict[str, Any], reader: TranscriptReader, mtime: float, now: float) -> dict[str, Any]:
@@ -621,6 +677,9 @@ def _describe(info: dict[str, Any], reader: TranscriptReader, mtime: float, now:
     _apply_views(nodes, quiet, now)
     cwd = info.get("cwd") or ""
     events = sorted(reader.events, key=lambda e: e["at"])
+    alive = _alive(info.get("pid", -1))
+    declared = str(info.get("status") or "")
+    questions = _questions(reader, idle=declared == "idle") if alive else []
     return {
         "sessionId": info["sessionId"],
         "agent": "claude",
@@ -632,7 +691,8 @@ def _describe(info: dict[str, Any], reader: TranscriptReader, mtime: float, now:
         "kind": info.get("kind") or "",
         "jobId": info.get("jobId") or "",
         "declaredStatus": info.get("status") or "",
-        "attention": _attention(str(info.get("status") or ""), quiet, alive=_alive(info.get("pid", -1))),
+        "attention": _attention(declared, quiet, alive=alive, asking=bool(questions)),
+        "questions": questions,
         "statusAgeSeconds": round(now - (info.get("statusUpdatedAt") or 0) / 1000)
         if info.get("statusUpdatedAt")
         else None,

@@ -107,6 +107,12 @@ longer than a step or two, and keep it true for as long as the work lasts:
   another goal's node is open is drawn under the wrong goal. Ask the agent to
   report against those same sub-goals, or its report will not map back onto the
   picture.
+- **Mark the node you are waiting on.** When the work stops for an answer from
+  the user, set `metadata: {"ask": "<the question, in plain words>"}` on the
+  node that waits for it, and `{"ask": null}` once it is answered. The view
+  puts a `?` on that node, on its goal and at the top of the page, so someone
+  with several sessions open can see where they are needed and get there. A
+  question asked only in the conversation is found only by reading it.
 - **Say when you are stuck.** Set the node back to `pending` and create a node
   describing the blocker, or leave it `in_progress` and let it go amber. Do not
   mark something completed to keep the picture green — a green graph that is
@@ -150,7 +156,10 @@ to a node, and say so.
 
 The session header carries what it needs from a person: `venter på deg` when the
 agent is idle and alive, `står stille` when it claims to be busy while nothing
-has been written for fifteen minutes.
+has been written for fifteen minutes, and `?` with the question when one is
+waiting: an open question box, an idle session whose last message has a
+`needs input:` line, or a node marked with `ask`. The top of the page lists
+every question waiting, across sessions, and a tap goes to it.
 
 ## Reading it
 
