@@ -33,6 +33,7 @@ decision nobody writes down.
 | [ADR-ST-002](ADR-ST-002-server-sent-events.md) | server-sent events rather than websockets | Accepted |
 | [ADR-ST-003](ADR-ST-003-replay-steps-by-event.md) | replay steps by event; the engine lives in the page | Accepted |
 | [ADR-ST-004](ADR-ST-004-how-a-change-is-made-here.md) | how a change is made here | Accepted |
+| [ADR-ST-005](ADR-ST-005-a-node-can-hold-a-breakdown.md) | a node can hold a breakdown, folded behind a symbol | Accepted |
 
 What is deliberately left undone, and what would make each worth doing, is
 [`deferred.md`](deferred.md). A thing left undone with no trigger is a thing

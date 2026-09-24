@@ -16,3 +16,4 @@ read whenever a decision record is written and when a phase ends.
 | Failing the suite when node is missing rather than skipping | A CI runner without node, or a second person running the tests | Today it is always there, and a hard failure would block a contributor for a reason they did not cause ([ADR-ST-003](ADR-ST-003-replay-steps-by-event.md)) |
 | Linking a session node to the commits and files it produced | Someone asks what a finished node actually changed | The data is in the transcript already; nobody has needed it yet |
 | Watching sessions on another machine | A second machine, or a rack whose sessions matter | The server binds localhost by design ([ADR-ST-002](ADR-ST-002-server-sent-events.md)) |
+| Drawing a helper agent's own task graph under the node that spawned it | Helper agents are given the task tools | They have none today, so there is nothing to draw ([ADR-ST-005](ADR-ST-005-a-node-can-hold-a-breakdown.md)) |

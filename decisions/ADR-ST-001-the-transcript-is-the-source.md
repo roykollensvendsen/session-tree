@@ -16,6 +16,12 @@ which together carry ids, subjects, `blockedBy` edges, owners and metadata. The
 task store itself holds no task data on disk: `~/.claude/tasks/<session>/`
 contains only a `.highwatermark` and a `.lock`.
 
+Update, 2026-09-24 (Claude Code 2.1.280): the task store now holds each task as
+`N.json`, with its subject, description, status, edges and metadata. It still
+keeps no history, so replay and the prompt timeline need the transcript, and the
+decision below stands. [ADR-ST-005](ADR-ST-005-a-node-can-hold-a-breakdown.md)
+records where this was noticed.
+
 Transcripts are large. Twenty-seven megabytes was observed on a single session
 in the repository this tool was built in.
 
