@@ -11,6 +11,7 @@ from session_tree.state import (
     _attach_agents,
     _attention,
     _components,
+    _questions,
     epoch_ms,
 )
 
@@ -214,3 +215,64 @@ def test_agents_are_not_added_again_on_every_pass(transcript: Transcript) -> Non
     for _ in range(3):
         _attach_agents(nodes, reader.spawns, [])
     assert len(reader.tasks["1"]["agents"]) == 1
+
+
+def test_an_open_question_box_is_a_question_waiting(transcript: Transcript) -> None:
+    """A question box with no answer is the surest sign the session needs you."""
+    transcript.ask("Publish the review?", at=10)
+    reader = read(transcript)
+    assert [q["text"] for q in _questions(reader, idle=False)] == ["Publish the review?"]
+
+
+def test_an_answered_question_box_is_no_longer_waiting(transcript: Transcript) -> None:
+    transcript.ask("Publish the review?", at=10, answered_at=20)
+    assert _questions(read(transcript), idle=True) == []
+
+
+def test_a_needs_input_line_counts_only_when_the_session_is_idle(transcript: Transcript) -> None:
+    """While the agent still works, the line may be about to be answered by itself."""
+    transcript.say("Stuck.\nneeds input: the Redmine number for the follow-up", at=10)
+    reader = read(transcript)
+    assert [q["text"] for q in _questions(reader, idle=True)] == [
+        "the Redmine number for the follow-up",
+    ]
+    assert _questions(reader, idle=False) == []
+
+
+def test_a_prompt_after_needs_input_is_its_answer(transcript: Transcript) -> None:
+    transcript.say("needs input: which branch?", at=10)
+    transcript.prompt("use main", at=20)
+    assert _questions(read(transcript), idle=True) == []
+
+
+def test_a_node_marked_with_ask_carries_its_question(transcript: Transcript) -> None:
+    """The question belongs to the goal it holds up, not only to the session."""
+    first = transcript.create("Roy approves the record", at=10, goal="adr")
+    transcript.update(first, at=20, status="in_progress", metadata={"ask": "Approve ADR-ST-005?"})
+    reader = read(transcript)
+    assert reader.tasks["1"]["ask"] == "Approve ADR-ST-005?"
+    asked = _questions(reader, idle=False)
+    assert [(q["text"], q["node"]) for q in asked] == [("Approve ADR-ST-005?", "1")]
+
+
+def test_a_question_cleared_with_null_is_gone(transcript: Transcript) -> None:
+    first = transcript.create("Roy approves the record", at=10)
+    transcript.update(first, at=20, metadata={"ask": "Approve?"})
+    transcript.update(first, at=30, metadata={"ask": None})
+    assert _questions(read(transcript), idle=False) == []
+
+
+def test_a_finished_node_no_longer_asks(transcript: Transcript) -> None:
+    """A question left on a completed node was answered and never cleared."""
+    first = transcript.create("Roy approves the record", at=10)
+    transcript.update(first, at=20, metadata={"ask": "Approve?"})
+    transcript.update(first, at=30, status="completed")
+    assert _questions(read(transcript), idle=False) == []
+
+
+def test_a_session_with_a_question_asks_rather_than_waits() -> None:
+    """Idle and asking are different requests of the person watching."""
+    assert _attention("idle", quiet=5, alive=True, asking=True) == "asking"
+    assert _attention("busy", quiet=5, alive=True, asking=True) == "asking"
+    assert _attention("idle", quiet=5, alive=False, asking=True) == "ended"
+    assert _attention("idle", quiet=5, alive=True) == "waiting"

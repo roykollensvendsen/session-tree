@@ -172,6 +172,26 @@ stille` means the session claims to be busy while nothing has been written for
 fifteen minutes, which is the one case where going in and looking is worth
 doing.
 
+## A question waiting on you
+
+`venter på deg` only says a session is idle, and a session that has finished
+looks the same as one that asked you something. A question gets its own mark,
+**`?`**, wherever it is waiting:
+
+- **On the session**, with the question itself, when the agent has an open
+  question box (`AskUserQuestion` with no answer yet), or when it has gone idle
+  after writing a line that starts with `needs input:`.
+- **On a node, and on its goal's header**, when the agent set
+  `metadata: {"ask": "<the question>"}` on the node it is waiting for. Setting
+  `ask` to `null` clears it. The question shows in the node's popover.
+
+With several sessions open, a line at the top of the page counts the questions
+waiting — `? 2 venter på svar` — and lists each one: the project, the session,
+the goal and the question. Tapping one scrolls to the session, opens the goal
+on its own and lights the node. The same place has an address of its own,
+`?s=<session id>&n=<node id>`, so a question can be linked to, and the list
+shows each session's working directory, so the terminal it runs in can be found.
+
 ## Replay
 
 `⏱ replay` on a session header turns the graph into a recording of itself. The

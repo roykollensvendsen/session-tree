@@ -56,3 +56,21 @@ name = "a truncated transcript is reread from the top"
 file = "src/session_tree/state.py"
 find = 'if size < self\.offset:'
 replace = 'if False:'
+
+[[rule]]
+name = "an answered question box is no longer waiting"
+file = "src/session_tree/state.py"
+find = 'self\.open_asks\.pop\(str\(use_id\), None\)'
+replace = 'pass'
+
+[[rule]]
+name = "a finished node no longer asks"
+file = "src/session_tree/state.py"
+find = 'if node\.get\("ask"\) and node\["status"\] not in \("completed", "abandoned"\)'
+replace = 'if node.get("ask")'
+
+[[rule]]
+name = "a needs input line counts only when the session is idle"
+file = "src/session_tree/state.py"
+find = '^\s*if idle:$'
+replace = 'if True:'
