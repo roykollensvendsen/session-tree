@@ -149,6 +149,11 @@ description, how long it has taken, and what it is waiting on. That popover is
 the only place the detail lives — the graph itself stays a shape you can read at
 a glance from across the desk.
 
+The highlight stays while the pointer rests on the node, even as the picture
+updates underneath it. A live session redraws the graph every time its
+transcript grows, and a resting pointer must not have to move to get its node
+back.
+
 Sessions are ordered active first. Clicking a header collapses it, and the
 choice is remembered.
 

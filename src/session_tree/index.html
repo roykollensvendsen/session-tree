@@ -286,6 +286,22 @@ function showTip(e,html){
 }
 const hideTip=()=>tip.classList.remove('on');
 
+/* A live session redraws the whole graph each time its transcript grows, which
+   replaces the node under a resting pointer with one that has seen no pointer
+   event: its wires went dark until the mouse moved. So the page keeps where the
+   pointer is, and after every redraw hands the node now under it the same event
+   again -- the highlight and the popover come back with the fresh data. */
+let POINTER=null;
+document.addEventListener('mousemove',e=>{ POINTER={x:e.clientX,y:e.clientY}; },{passive:true});
+document.documentElement.addEventListener('mouseleave',()=>{ POINTER=null; });
+function rehover(){
+  if(!POINTER) return;
+  const hit=document.elementFromPoint(POINTER.x,POINTER.y);
+  const node=hit&&hit.closest('.node');
+  if(node) node.dispatchEvent(new MouseEvent('mousemove',{clientX:POINTER.x,clientY:POINTER.y,bubbles:true}));
+  else hideTip();
+}
+
 /* Bands are the order the work has to happen in, not a clock: a node sits in
    the first band where every dependency above it is already done. */
 function layout(goal,width){
@@ -843,6 +859,7 @@ function render(data){
   PENDING.length=0;
   window.scrollTo(0,keep);
   if(FOCUS.open) drawFocus();
+  rehover();
 }
 
 let es;
