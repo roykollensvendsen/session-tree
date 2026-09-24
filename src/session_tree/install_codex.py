@@ -42,6 +42,13 @@ is not the same as one waiting for the other.
 
 This is what lets the plan be drawn as a graph rather than a list. Leaving it
 out costs nothing else -- the checklist still works.
+
+Write each step for someone who has not seen this conversation, because people
+follow the plan in that graph without reading it: an outcome they could check,
+in plain words, naming the thing itself, without commit hashes, labels you
+invented or abbreviations only this session knows. Keep the detail you need to
+do the step -- files, commands, identifiers -- in the `explanation`, after the
+`deps:` line, where it does not crowd the step.
 """
 
 
