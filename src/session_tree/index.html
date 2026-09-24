@@ -151,6 +151,10 @@
   .node.asks rect{stroke:#facc15;stroke-width:2}
   .node.lit rect{stroke:#facc15;stroke-width:3.5;filter:drop-shadow(0 0 7px rgba(250,204,21,.8))}
   .tip .ask{color:#facc15;margin:5px 0;font-weight:600}
+  .chip{cursor:pointer}
+  .chip:hover rect{filter:brightness(1.2)}
+  .goal .up{font-size:11px;color:#9ec8f5;cursor:pointer;margin:2px 0 4px;padding:6px 0}
+  .goal .up b{color:#cfe3fb}
   #asks{display:none;position:sticky;top:0;z-index:40;background:#1d1a0c;border-bottom:1px solid #5c4d12;
       padding:7px 14px;font-size:12px;color:#f5e6a8}
   #asks.on{display:block}
@@ -375,9 +379,9 @@ function rehover(){
    units, which are CSS pixels when the focus is at full size. */
 const SIZE={
   card:{nodeW:190,minW:300,grow:false,pad:7,idFont:9,font:10.5,lines:1,lineH:11,idTop:12,textTop:23,
-        agentH:12,agentFont:9,padBottom:7,bandGap:22,colGap:8},
+        agentH:12,agentFont:9,padBottom:7,bandGap:22,colGap:8,chipW:44},
   large:{nodeW:250,minW:0,grow:true,pad:10,idFont:11.5,font:14,lines:3,lineH:18,idTop:16,textTop:34,
-         agentH:17,agentFont:11.5,padBottom:10,bandGap:40,colGap:18},
+         agentH:17,agentFont:11.5,padBottom:10,bandGap:40,colGap:18,chipW:66},
 };
 const FONT='ui-sans-serif,-apple-system,"Segoe UI",Roboto,sans-serif';
 const measure=document.createElement('canvas').getContext('2d');
@@ -429,7 +433,7 @@ function layout(goal,width,size){
     // band packs the others around the middle, so they stay near each other
     const gap=size.grow?size.nodeW+size.colGap:W/row.length, w=Math.min(gap-size.colGap,size.nodeW);
     const left=(W-gap*row.length)/2;
-    row.forEach(n=>{ lines[n.id]=wrapLines(n.subject,w-2*size.pad,size.font,size.lines); });
+    row.forEach(n=>{ lines[n.id]=wrapLines(n.subject,w-2*size.pad-(chipOf(n)?size.chipW:0),size.font,size.lines); });
     const tallest=Math.max(...row.map(heightOf));
     row.forEach((n,i)=>{
       const cx=left+gap*i+gap/2, h=heightOf(n);
@@ -440,7 +444,56 @@ function layout(goal,width,size){
   return {pos,bands:ds,bandTop,height:y+6,W};
 }
 
+/* A breakdown folded into its node (ADR-ST-005). The server says whether it
+   starts folded -- only when nothing outside it depends on one of its steps --
+   and a tap on the node's chip overrides that for this viewer, remembered. */
+let FOLD={};
+try{ FOLD=JSON.parse(localStorage.getItem('st.fold')||'{}')||{}; }catch(e){ FOLD={}; }
+const foldKey=(sess,n)=>sess.sessionId+'/'+n.id;
+function isFolded(sess,n){ const k=foldKey(sess,n); return k in FOLD?FOLD[k]:!!n.breakdown.folded; }
+/* The steps a drawing leaves out: those under a folded node, and theirs. */
+function hiddenBy(goal,sess){
+  const kids={}, hidden=new Set();
+  goal.nodes.forEach(n=>{ if(n.breakdown) kids[n.id]=n.breakdown.children; });
+  const hide=id=>(kids[id]||[]).forEach(c=>{ if(!hidden.has(c)){ hidden.add(c); hide(c); } });
+  goal.nodes.forEach(n=>{ const folded=n.breakdown&&isFolded(sess,n); if(folded) hide(n.id); });
+  return hidden;
+}
+function toggleFold(sess,n){
+  FOLD[foldKey(sess,n)]=!isFolded(sess,n);
+  remember('st.fold',JSON.stringify(FOLD));
+  hideTip();
+  // the drawing changes width, so keep the node that was tapped in view
+  if(FOCUS.open){ FOCUS.view=null; FOCUS.target=n.id; }
+  refresh();
+}
+/* Bands with an unfolded breakdown drawn under its node: a step sits at least
+   one band below the node it belongs to, as it would below a dependency, and
+   whatever waits on the step moves down with it. */
+function bandsWithSteps(goal){
+  const byId=Object.fromEntries(goal.nodes.map(n=>[n.id,n])), depth={};
+  const walk=(id,seen)=>{
+    if(id in depth) return depth[id];
+    const n=byId[id]; if(!n||seen.has(id)) return 0;
+    const above=[...(n.blockedBy||[]),...(n.parent&&byId[n.parent]?[n.parent]:[])].filter(d=>d in byId);
+    const next=new Set(seen).add(id);
+    return depth[id]=above.length?1+Math.max(...above.map(d=>walk(d,next))):0;
+  };
+  goal.nodes.forEach(n=>walk(n.id,new Set()));
+  return depth;
+}
+/* What the chip on a node says, if it carries one: its own breakdown, or
+   work in another session. */
+function chipOf(n){
+  if(n.breakdown) return {kind:'fold',...n.breakdown};
+  if(n.remote) return {kind:'remote',...n.remote};
+  return null;
+}
+
 function renderGoal(goal,sess,width,size){
+  const hidden=hiddenBy(goal,sess);
+  if(hidden.size) goal={...goal,nodes:goal.nodes.filter(n=>!hidden.has(n.id))};
+  if(goal.nodes.some(n=>n.breakdown)) goal={...goal,depth:bandsWithSteps(goal)};
   const L=layout(goal,width,size), NS='http://www.w3.org/2000/svg';
   const svg=document.createElementNS(NS,'svg');
   svg.setAttribute('viewBox',`0 0 ${L.W} ${L.height}`);
@@ -534,8 +587,39 @@ function renderGoal(goal,sess,width,size){
     if((n.failures||[]).length) small(p.x+p.w-2*size.idFont-6,p.y+size.idTop+1,'!',size.idFont).style.fill='#ef8a8a';
     if(n.view==='completed') small(p.x+p.w-size.idFont-4,p.y+size.idTop+1,'✓',size.idFont).style.fill='#22c55e';
     if(asking){
-      const q=small(p.x+p.w-size.idFont-5,p.y+size.idTop+2,'?',size.idFont*1.5);
+      const q=small(p.x+p.w-size.idFont-5-(chipOf(n)?size.chipW:0),p.y+size.idTop+2,'?',size.idFont*1.5);
       q.style.fill='#facc15'; q.style.fontWeight='700';
+    }
+    // the chip: a folded breakdown (▸ done/total), an unfolded one (▾), or work
+    // in another session (↗). It takes the colour of the worst step under it,
+    // and it is a tap target of its own, the full height of the node.
+    const chip=chipOf(n);
+    if(chip){
+      const c=document.createElementNS(NS,'g'); c.setAttribute('class','chip');
+      const cr=document.createElementNS(NS,'rect');
+      cr.setAttribute('x',p.x+p.w-size.chipW); cr.setAttribute('y',p.y);
+      cr.setAttribute('width',size.chipW); cr.setAttribute('height',p.h); cr.setAttribute('rx',6);
+      cr.setAttribute('fill',COLOR[chip.worst]||COLOR.pending);
+      if(chip.disagrees){ cr.setAttribute('stroke','#ef4444'); cr.setAttribute('stroke-width',2.5); }
+      const mark=chip.kind==='remote'?'↗':(isFolded(sess,n)?'▸':'▾');
+      const ct=document.createElementNS(NS,'text');
+      ct.setAttribute('x',p.x+p.w-size.chipW/2); ct.setAttribute('y',p.y+p.h/2+size.font*0.35);
+      ct.setAttribute('text-anchor','middle'); ct.style.fontSize=size.font+'px'; ct.style.fontWeight='700';
+      ct.style.fill='#0e1116';
+      ct.textContent=`${mark} ${chip.done}/${chip.total}${chip.disagrees?' !':''}`;
+      c.appendChild(cr); c.appendChild(ct);
+      // the full-screen view captures the pointer to pan, which would take the
+      // click away from the chip; a press that starts on the chip is the chip's
+      c.addEventListener('pointerdown',e=>e.stopPropagation());
+      // a finger on the chip means the chip: the node's popover would cover
+      // the very steps the tap just unfolded
+      c.addEventListener('mousemove',e=>{ if(TOUCH) e.stopPropagation(); });
+      c.addEventListener('click',e=>{
+        e.stopPropagation();
+        if(chip.kind==='remote') goToQuestion(chip.sessionId,chip.nodeId);
+        else toggleFold(sess,n);
+      });
+      g.appendChild(c);
     }
 
     g.addEventListener('mousemove',e=>{
@@ -550,7 +634,7 @@ function renderGoal(goal,sess,width,size){
         `<div class="row" style="color:#f0a8a8">${n.failures.length} kommando${n.failures.length>1?'er':''} feilet · ${esc(n.failures[0])}</div>`:'';
       showTip(e,`<h4>#${n.id} · ${esc(n.subject)}</h4>
         <div style="color:${COLOR[n.view]};font-size:11px;font-weight:600">${LABEL[n.view]||n.view}</div>
-        ${asking?`<div class="ask">? ${esc(n.ask)}</div>`:''}${n.description?`<p>${esc(n.description)}</p>`:''}${waiting}${time}${files}${bad}
+        ${asking?`<div class="ask">? ${esc(n.ask)}</div>`:''}${n.breakdown?`<div class="row">delmål: ${n.breakdown.done}/${n.breakdown.total} ferdig${n.breakdown.disagrees?' — noden er ferdig, men ikke alle delmålene':''}</div>`:''}${n.remote?`<div class="row">arbeid i en annen økt: ${esc(n.remote.title)} · ${n.remote.done}/${n.remote.total} ferdig</div>`:''}${n.description?`<p>${esc(n.description)}</p>`:''}${waiting}${time}${files}${bad}
         <div class="row">${esc(sess.project)}${sess.branch?' · '+esc(sess.branch):''}</div>`,r);
       svg.querySelectorAll('.node').forEach(o=>o.classList.toggle('dim',o.dataset.id!==n.id &&
         !(n.blockedBy||[]).includes(o.dataset.id) && !(n.blocks||[]).includes(o.dataset.id)));
@@ -798,6 +882,13 @@ function renderSession(s){
         ${(g.danglingEdges||[]).length?`<div class="broken">⚠ peker på steg som ikke finnes: ${esc(g.danglingEdges.join(', '))}</div>`:''}
         ${(g.hasEdges===false)?`<div class="why">ingen avhengigheter mellom disse — rekkefølgen er listerekkefølgen, ikke noe som venter på noe</div>`:''}`;
       card.querySelector('.gtitle').onclick=()=>openFocus(g,s);
+      // this goal is work handed on from a node in another session: point back
+      if(g.upstream){
+        const up=document.createElement('div'); up.className='up';
+        up.innerHTML=`↖ for <b>#${esc(g.upstream.nodeId)}</b> ${esc(g.upstream.subject)} <span style="color:var(--faint)">· ${esc(g.upstream.title)}</span>`;
+        up.onclick=()=>goToQuestion(g.upstream.sessionId,g.upstream.nodeId);
+        card.insertBefore(up,card.children[1]);
+      }
       wrap.appendChild(card);
       PENDING.push({card:card,goal:g,sess:s});
     });
@@ -1012,6 +1103,12 @@ function goToQuestion(sessionId,nodeId){
   remember('st.opened',JSON.stringify([...opened]));
   const goal=goalOf(s,nodeId);
   if(goal){ PAGE[sessionId]=s.goals.indexOf(goal); remember('st.page',JSON.stringify(PAGE)); }
+  // a node inside a folded breakdown cannot be lit; open the way down to it
+  if(goal){
+    const byId=Object.fromEntries(goal.nodes.map(n=>[n.id,n]));
+    for(let n=byId[nodeId]; n&&n.parent&&byId[n.parent]; n=byId[n.parent]) FOLD[foldKey(s,byId[n.parent])]=false;
+    remember('st.fold',JSON.stringify(FOLD));
+  }
   history.replaceState(null,'',askHref(sessionId,nodeId));
   refresh();
   if(goal) openFocus(goal,s,nodeId);

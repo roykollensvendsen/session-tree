@@ -106,7 +106,12 @@ longer than a step or two, and keep it true for as long as the work lasts:
   whichever node is in progress at that moment, so an agent spawned while
   another goal's node is open is drawn under the wrong goal. Ask the agent to
   report against those same sub-goals, or its report will not map back onto the
-  picture.
+  picture. Give each sub-goal `metadata: {"parent": "<the goal's task id>"}`:
+  the view folds them into that node behind `▸ done/total`, so the goal's graph
+  keeps the size of the goal. When the work goes to another session instead,
+  pass it `<your session id>#<task id>` (the id is in `CLAUDE_CODE_SESSION_ID`)
+  and ask it to put that in its own nodes' `parent`; the node then links to the
+  other session's graph.
 - **Mark the node you are waiting on.** When the work stops for an answer from
   the user, set `metadata: {"ask": "<the question, in plain words>"}` on the
   node that waits for it, and `{"ask": null}` once it is answered. The view
