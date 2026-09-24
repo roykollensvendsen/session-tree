@@ -16,3 +16,7 @@ FAILED tests/test_breakdowns_view.py::test_a_folded_breakdown_is_left_out_of_the
 FAILED tests/test_breakdowns_view.py::test_the_chip_folds_and_unfolds_and_remembers
 FAILED tests/test_breakdowns_view.py::test_work_elsewhere_links_there_and_back
 15 failed, 1 passed in 0.11s
+
+# Box around the steps, 2026-09-24T11:44:43Z: with renderGoal reverted to the flat layout
+FAILED tests/test_breakdowns_view.py::test_an_unfolded_breakdown_is_a_box_around_its_steps
+1 failed, 4 passed

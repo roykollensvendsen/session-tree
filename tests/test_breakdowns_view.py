@@ -40,3 +40,12 @@ def test_the_chip_folds_and_unfolds_and_remembers():
 def test_work_elsewhere_links_there_and_back():
     assert "n.remote" in function("renderGoal"), "a node does not link to the work elsewhere"
     assert "upstream" in function("renderSession"), "the work elsewhere does not link back"
+
+
+def test_an_unfolded_breakdown_is_a_box_around_its_steps():
+    """The node is the part of the network it stands for, so its steps sit inside it."""
+    body = function("renderGoal")
+    assert "layoutNested(" in body, "an unfolded breakdown is laid out beside its node"
+    assert "frame" in body, "no box is drawn around the steps"
+    assert "L.holds" in body, "a step still draws a wire to the box that holds it"
+    assert "inner" in function("layoutNested"), "a box is not sized from the steps inside it"

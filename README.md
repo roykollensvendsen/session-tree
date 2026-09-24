@@ -197,9 +197,12 @@ shows each session's working directory, so the terminal it runs in can be found.
 When an agent hands part of a goal on, the steps of that part say which node
 they belong to: `metadata: {"parent": "<task id>"}`. The view then draws them
 folded into that node, which carries **`▸ 3/5`** (done and total) in the colour
-of the worst of its steps, so a red step still shows. A tap unfolds them in
-place, and the chip turns to `▾`; a second tap folds them again, and the choice
-is remembered. If a node outside the breakdown depends on one of its steps, the
+of the worst of its steps, so a red step still shows. A tap unfolds it: the node
+becomes a box, its own subject the heading, with its steps drawn inside as a
+small graph of their own, and the chip, now `▾`, in its top right corner. In the
+full-screen view the chip stays where the finger tapped it. The node is the part of the
+network it stands for, folded or not. A second tap folds it again, and the
+choice is remembered. If a node outside the breakdown depends on one of its steps, the
 breakdown is drawn unfolded from the start, because folding would hide that
 dependency. A node that is done while one of its steps is still open says so
 with a `!` on the chip.
