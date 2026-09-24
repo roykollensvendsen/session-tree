@@ -40,9 +40,30 @@ _clients_lock = threading.Lock()
 _latest: dict[str, Any] = {"payload": "", "at": 0.0}
 
 
+# Fields that move with the clock alone. The picture carries them so a fresh
+# page shows current times, but they must not count as a change: they did, and
+# the stream pushed the full picture (~0.7 MB) 2.5 times a second forever —
+# 97 MB a minute to a phone, and a browser tab that grew to 20 GB in a day.
+VOLATILE_KEYS = frozenset({"now", "durationMs", "statusAgeSeconds"})
+# When only clocks moved, still push this often so stall colours catch up.
+REFRESH_SECONDS = 30.0
+
+
 def snapshot() -> str:
     """Return the current picture as a JSON string."""
     return json.dumps(build(), ensure_ascii=False, default=str)
+
+
+Json = dict[str, "Json"] | list["Json"] | str | int | float | bool | None
+
+
+def _stable(value: Json) -> Json:
+    """The picture without its clock-driven fields -- what 'changed' compares."""
+    if isinstance(value, dict):
+        return {k: _stable(v) for k, v in value.items() if k not in VOLATILE_KEYS}
+    if isinstance(value, list):
+        return [_stable(v) for v in value]
+    return value
 
 
 def _broadcast(payload: str) -> None:
@@ -55,18 +76,27 @@ def _broadcast(payload: str) -> None:
 
 
 def watch(stop: threading.Event | None = None) -> None:
-    """Poll the transcripts and push whenever the picture changes."""
+    """Poll the transcripts and push whenever the picture changes.
+
+    Only a change outside VOLATILE_KEYS counts; if nothing else moved, the
+    picture is pushed at most every REFRESH_SECONDS. /api/state and a newly
+    connected stream always get the freshest picture.
+    """
     previous: str | None = None
+    pushed_at = 0.0
     while stop is None or not stop.is_set():
         try:
-            payload = snapshot()
+            picture = build()
+            payload = json.dumps(picture, ensure_ascii=False, default=str)
+            signature = json.dumps(_stable(picture), ensure_ascii=False, default=str)
         except Exception as error:  # noqa: BLE001 - the thread must never die
             sys.stderr.write(f"watch error: {error!r}\n")
         else:
-            if payload != previous:
-                previous = payload
-                _latest["payload"] = payload
-                _latest["at"] = time.time()
+            _latest["payload"] = payload
+            _latest["at"] = time.time()
+            if signature != previous or time.monotonic() - pushed_at >= REFRESH_SECONDS:
+                previous = signature
+                pushed_at = time.monotonic()
                 _broadcast(payload)
         time.sleep(POLL_SECONDS)
 

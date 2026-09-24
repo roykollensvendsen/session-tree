@@ -6,6 +6,14 @@ versions follow [semantic versioning](https://semver.org/spec/v2.0.0.html).
 
 ## Unreleased
 
+### Fixed
+
+- The live stream pushed the whole picture (~0.7 MB) 2.5 times a second even
+  when nothing happened, because the clock and running durations are part of
+  it: 97 MB a minute to every open page, and a browser tab that grew to 20 GB
+  in a day. Now only a change outside those fields pushes (at most every 30 s
+  otherwise), and the page ages running work itself.
+
 ### Added
 
 - Several independent goals in one session are pages: swipe, dots, arrow
