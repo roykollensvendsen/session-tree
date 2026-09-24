@@ -350,17 +350,51 @@ function rehover(){
   else hideTip();
 }
 
+/* How big a graph is drawn. A card has a card's width, so its nodes are small
+   and a subject gets one clipped line. The focused graph has as much room as it
+   wants, since it pans, so its nodes are wide enough to read on a phone at full
+   size, and a subject gets up to three lines. Sizes are in the drawing's own
+   units, which are CSS pixels when the focus is at full size. */
+const SIZE={
+  card:{nodeW:190,minW:300,grow:false,pad:7,idFont:9,font:10.5,lines:1,lineH:11,idTop:12,textTop:23,
+        agentH:12,agentFont:9,padBottom:7,bandGap:22,colGap:8},
+  large:{nodeW:250,minW:0,grow:true,pad:10,idFont:11.5,font:14,lines:3,lineH:18,idTop:16,textTop:34,
+         agentH:17,agentFont:11.5,padBottom:10,bandGap:40,colGap:18},
+};
+const FONT='ui-sans-serif,-apple-system,"Segoe UI",Roboto,sans-serif';
+const measure=document.createElement('canvas').getContext('2d');
+/* A subject broken into at most `lines` lines no wider than `width` at this
+   font size; whatever does not fit ends the last line with an ellipsis. */
+function wrapLines(text,width,px,lines){
+  measure.font=px+'px '+FONT;
+  const fits=t=>measure.measureText(t).width<=width;
+  const clip=t=>{ while(t&&!fits(t+'…')) t=t.slice(0,-1); return t.trimEnd()+'…'; };
+  const out=[]; let line='';
+  for(const word of (text||'').split(/\s+/).filter(Boolean)){
+    const next=line?line+' '+word:word;
+    if(fits(next)){ line=next; continue; }
+    if(line&&out.length<lines-1){ out.push(line); line=word; if(fits(word)) continue; }
+    else line=next;
+    // the last line is full, or one word is wider than a line
+    return out.concat(clip(line));
+  }
+  return line?out.concat(line):out;
+}
+
 /* Bands are the order the work has to happen in, not a clock: a node sits in
    the first band where every dependency above it is already done. */
-function layout(goal,width){
+function layout(goal,width,size){
   const nodes=goal.nodes, depth=goal.depth||{};
   const bands=new Map();
   nodes.forEach(n=>{ const d=depth[n.id]||0; if(!bands.has(d))bands.set(d,[]); bands.get(d).push(n); });
   const ds=[...bands.keys()].sort((a,b)=>a-b);
-  const W=Math.max(300,width||330);
-  const NH=30, AGENT_H=12, pos={};
-  // a node carrying subagents grows to make room for them
-  const heightOf=n=>NH+((n.agents||[]).length?(n.agents.length*AGENT_H+5):0);
+  // the widest band decides the width when the size asks for more than is given
+  const widest=Math.max(1,...[...bands.values()].map(r=>r.length));
+  const W=Math.max(size.minW,width||330,size.grow?widest*(size.nodeW+size.colGap):0);
+  const pos={}, lines={};
+  // a subject takes the lines it needs, and subagents add a row each
+  const heightOf=n=>size.textTop+(lines[n.id].length-1)*size.lineH+size.padBottom
+    +((n.agents||[]).length?(n.agents.length*size.agentH+4):0);
   let y=16;
   const bandTop=[];
   ds.forEach((d,bi)=>{
@@ -373,19 +407,23 @@ function layout(goal,width){
       n._h=ups.length?ups.reduce((a,p)=>a+p.cx,0)/ups.length:W/2;
     });
     row.sort((a,b)=>a._h-b._h);
-    const gap=W/row.length;
+    // a card spreads a band across its width; a graph that grew to its widest
+    // band packs the others around the middle, so they stay near each other
+    const gap=size.grow?size.nodeW+size.colGap:W/row.length, w=Math.min(gap-size.colGap,size.nodeW);
+    const left=(W-gap*row.length)/2;
+    row.forEach(n=>{ lines[n.id]=wrapLines(n.subject,w-2*size.pad,size.font,size.lines); });
     const tallest=Math.max(...row.map(heightOf));
     row.forEach((n,i)=>{
-      const w=Math.min(gap-8,190), cx=gap*i+gap/2, h=heightOf(n);
-      pos[n.id]={x:cx-w/2,y:y,w:w,h:h,cx:cx,cy:y+NH/2,band:bi};
+      const cx=left+gap*i+gap/2, h=heightOf(n);
+      pos[n.id]={x:cx-w/2,y:y,w:w,h:h,cx:cx,cy:y+h/2,band:bi,lines:lines[n.id]};
     });
-    y+=tallest+22;
+    y+=tallest+size.bandGap;
   });
-  return {pos,bands:ds,bandTop,height:y+6,W,AGENT_H};
+  return {pos,bands:ds,bandTop,height:y+6,W};
 }
 
-function renderGoal(goal,sess,width){
-  const L=layout(goal,width), NS='http://www.w3.org/2000/svg';
+function renderGoal(goal,sess,width,size){
+  const L=layout(goal,width,size), NS='http://www.w3.org/2000/svg';
   const svg=document.createElementNS(NS,'svg');
   svg.setAttribute('viewBox',`0 0 ${L.W} ${L.height}`);
   svg.setAttribute('height',L.height);
@@ -403,7 +441,7 @@ function renderGoal(goal,sess,width){
     if(bi===nowBand){
       const t=document.createElementNS(NS,'text');
       t.setAttribute('x',1);t.setAttribute('y',y+11);t.setAttribute('class','bandlbl');
-      t.style.fill='#5e8fd0'; t.textContent='nå';
+      t.style.fill='#5e8fd0'; t.style.fontSize=size.idFont+'px'; t.textContent='nå';
       svg.appendChild(t);
     }
   });
@@ -440,47 +478,40 @@ function renderGoal(goal,sess,width){
     if(n.view==='in_progress') g.classList.add('pulsing');
     g.appendChild(r);
 
-    const id=document.createElementNS(NS,'text');
-    id.setAttribute('x',p.x+7);id.setAttribute('y',p.y+12);id.setAttribute('class','id');
-    id.textContent='#'+n.id;
-    g.appendChild(id);
+    const small=(x,y,text,px)=>{
+      const t=document.createElementNS(NS,'text');
+      t.setAttribute('x',x);t.setAttribute('y',y);t.setAttribute('class','id');
+      t.style.fontSize=px+'px'; t.textContent=text;
+      g.appendChild(t); return t;
+    };
+    small(p.x+size.pad,p.y+size.idTop,'#'+n.id,size.idFont);
 
     const label=document.createElementNS(NS,'text');
-    label.setAttribute('x',p.x+7);label.setAttribute('y',p.y+23);
-    const room=Math.floor((p.w-14)/5.4);
-    let s=n.subject||''; if(s.length>room) s=s.slice(0,room-1)+'…';
-    label.textContent=s;
+    label.style.fontSize=size.font+'px';
+    p.lines.forEach((line,li)=>{
+      const span=document.createElementNS(NS,'tspan');
+      span.setAttribute('x',p.x+size.pad);span.setAttribute('y',p.y+size.textTop+li*size.lineH);
+      span.textContent=line; label.appendChild(span);
+    });
     if(n.view==='abandoned'){label.style.fill='#5b6678';label.style.textDecoration='line-through';}
     if(n.view==='completed')label.style.fill='#b7e6c6';
     g.appendChild(label);
 
+    const agentTop=p.y+size.textTop+(p.lines.length-1)*size.lineH+size.padBottom;
     (n.agents||[]).forEach((a,ai)=>{
-      const ay=p.y+30+ai*L.AGENT_H;
+      const ay=agentTop+ai*size.agentH, mid=ay+size.agentFont*0.4;
       const dot=document.createElementNS(NS,'circle');
-      dot.setAttribute('cx',p.x+11);dot.setAttribute('cy',ay+4);dot.setAttribute('r',3);
+      dot.setAttribute('cx',p.x+size.pad+4);dot.setAttribute('cy',mid);dot.setAttribute('r',size.agentFont/3);
       dot.setAttribute('fill',a.running?'#3b82f6':'#22c55e');
       if(a.running) dot.setAttribute('class','pulsing');
       g.appendChild(dot);
-      const lbl=document.createElementNS(NS,'text');
-      lbl.setAttribute('x',p.x+19);lbl.setAttribute('y',ay+7.5);
-      lbl.setAttribute('class','id');
+      const room=p.w-2*size.pad-12;
+      const lbl=small(p.x+size.pad+12,mid+size.agentFont*0.36,
+        wrapLines(a.description||'agent',room,size.agentFont,1)[0]||'',size.agentFont);
       lbl.style.fill=a.running?'#9ec8f5':'#8b97a8';
-      const room=Math.floor((p.w-26)/4.9);
-      lbl.textContent=(a.description||'agent').slice(0,room);
-      g.appendChild(lbl);
     });
-    if((n.failures||[]).length){
-      const warn=document.createElementNS(NS,'text');
-      warn.setAttribute('x',p.x+p.w-24);warn.setAttribute('y',p.y+13);
-      warn.setAttribute('class','id');warn.style.fill='#ef8a8a';warn.textContent='!';
-      g.appendChild(warn);
-    }
-    if(n.view==='completed'){
-      const ok=document.createElementNS(NS,'text');
-      ok.setAttribute('x',p.x+p.w-13);ok.setAttribute('y',p.y+13);
-      ok.setAttribute('class','id');ok.style.fill='#22c55e';ok.textContent='✓';
-      g.appendChild(ok);
-    }
+    if((n.failures||[]).length) small(p.x+p.w-2*size.idFont-6,p.y+size.idTop+1,'!',size.idFont).style.fill='#ef8a8a';
+    if(n.view==='completed') small(p.x+p.w-size.idFont-4,p.y+size.idTop+1,'✓',size.idFont).style.fill='#22c55e';
 
     g.addEventListener('mousemove',e=>{
       const waiting=(n.waitingOn||[]).length?
@@ -804,7 +835,7 @@ function drawFocus(){
   const goal=goals.find(g=>g.title===FOCUS.title);
   if(!goal){ closeFocus(); return; }
   const body=fbox(); body.innerHTML='';
-  const svg=renderGoal(goal,sess,Math.max(600,body.clientWidth-40));
+  const svg=renderGoal(goal,sess,body.clientWidth-40,SIZE.large);
   svg.removeAttribute('height');
   body.appendChild(svg);
   // the drawing's own frame, padded, is what "fit" means; keep the aspect of the window
@@ -812,10 +843,28 @@ function drawFocus(){
   const W=vb[2]+40, H=vb[3]+40, ar=body.clientWidth/Math.max(1,body.clientHeight);
   let w=W, h=H; if(w/h<ar) w=h*ar; else h=w/ar;
   FOCUS.base={x:vb[0]-20-(w-W)/2,y:vb[1]-20-(h-H)/2,w:w,h:h};
-  if(!FOCUS.view) FOCUS.view={...FOCUS.base};
+  if(!FOCUS.view) FOCUS.view=firstView(svg,goal,vb);
   applyView();
   const live=goal.nodes.filter(n=>n.view!=='abandoned');
   document.getElementById('ftitle').textContent=`${goal.title} — ${live.filter(n=>n.view==='completed').length}/${live.length} ferdig · ${sess.project}`;
+}
+/* Fitting a wide graph onto a phone shrinks its text past reading, which is
+   what the focus exists to avoid. So it opens fitted only when fitting keeps
+   the text near full size; otherwise at full size, from the top, centred on
+   the node being worked on (or the first one still open), and the viewer pans. */
+const READABLE_SCALE=0.8;
+function firstView(svg,goal,vb){
+  const body=fbox(), bw=body.clientWidth, bh=body.clientHeight;
+  if(bw/FOCUS.base.w>=READABLE_SCALE) return {...FOCUS.base};
+  const open=goal.nodes.find(n=>['in_progress','blocked','stalled'].includes(n.view))
+    ||goal.nodes.find(n=>n.view!=='completed'&&n.view!=='abandoned')||goal.nodes[0];
+  const box=open&&svg.querySelector(`.node[data-id="${CSS.escape(open.id)}"] rect`);
+  const cx=box?+box.getAttribute('x')+(+box.getAttribute('width'))/2:vb[0]+vb[2]/2;
+  const cy=box?+box.getAttribute('y'):vb[1];
+  const x=Math.max(vb[0]-20,Math.min(cx-bw/2,vb[0]+vb[2]+20-bw));
+  // the top of the graph when the node is on the first screen, else the node a third down
+  const y=cy+80<vb[1]+bh?vb[1]-20:Math.min(cy-bh/3,vb[1]+vb[3]+20-bh);
+  return {x:x,y:y,w:bw,h:bh};
 }
 function openFocus(goal,sess){
   FOCUS.open=true; FOCUS.sessionId=sess.sessionId; FOCUS.title=goal.title; FOCUS.view=null; FOCUS.base=null;
@@ -903,7 +952,7 @@ function render(data){
   PENDING.length=0;
   data.sessions.forEach(s=>root.appendChild(renderSession(s)));
   // second pass: the cards are in the document now, so their width is real
-  PENDING.forEach(p=>p.card.appendChild(renderGoal(p.goal,p.sess,p.card.clientWidth-22)));
+  PENDING.forEach(p=>p.card.appendChild(renderGoal(p.goal,p.sess,p.card.clientWidth-22,SIZE.card)));
   PENDING.length=0;
   window.scrollTo(0,keep);
   if(FOCUS.open) drawFocus();
