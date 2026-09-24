@@ -97,6 +97,16 @@ longer than a step or two, and keep it true for as long as the work lasts:
 - **Put separate goals on separate graphs** with `metadata: {"goal": "<name>"}`.
   Without it the view falls back to connected components, which is usually right
   and occasionally merges two unrelated goals that happen to share a node.
+- **Break delegated work down in your own graph, before the agent starts.** A
+  subagent's own steps are not drawn: it hangs on the node that spawned it as
+  one pulsing dot. So a goal handed to an agent gets its checkable sub-goals as
+  nodes here, wired in order (reproduced, failing test, fix, green, looked at,
+  the user tried it, committed), and you move them as the agent reports. Start
+  the node the agent works on before you spawn it: the view hangs an agent on
+  whichever node is in progress at that moment, so an agent spawned while
+  another goal's node is open is drawn under the wrong goal. Ask the agent to
+  report against those same sub-goals, or its report will not map back onto the
+  picture.
 - **Say when you are stuck.** Set the node back to `pending` and create a node
   describing the blocker, or leave it `in_progress` and let it go amber. Do not
   mark something completed to keep the picture green — a green graph that is
