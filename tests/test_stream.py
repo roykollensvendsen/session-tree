@@ -12,6 +12,7 @@ def _picture(now: float, subject: str) -> dict:
         "sessions": [
             {
                 "statusAgeSeconds": round(now),
+                "quietSeconds": round(now) % 97,
                 "goals": [
                     {
                         "nodes": [

@@ -44,7 +44,7 @@ _latest: dict[str, Any] = {"payload": "", "at": 0.0}
 # page shows current times, but they must not count as a change: they did, and
 # the stream pushed the full picture (~0.7 MB) 2.5 times a second forever —
 # 97 MB a minute to a phone, and a browser tab that grew to 20 GB in a day.
-VOLATILE_KEYS = frozenset({"now", "durationMs", "statusAgeSeconds"})
+VOLATILE_KEYS = frozenset({"now", "durationMs", "statusAgeSeconds", "quietSeconds"})
 # When only clocks moved, still push this often so stall colours catch up.
 REFRESH_SECONDS = 30.0
 
