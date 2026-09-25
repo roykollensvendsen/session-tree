@@ -1238,11 +1238,18 @@ let ARRIVED=false;
 
 /* The server pushes only when something other than the clock changed, so the
    page ages running work itself: a started, unfinished node has been running
-   since startedMs, whatever the picture's own snapshot of durationMs says. */
+   since startedMs, whatever the picture's own snapshot of durationMs says.
+   A session's quiet time likewise grows from when the picture arrived. */
 function ageRunning(data){
   const t=Date.now();
-  for(const s of data.sessions||[]) for(const g of s.goals||[]) for(const n of g.nodes||[])
-    if(n.status==='in_progress'&&n.startedMs&&!n.endedMs) n.durationMs=Math.max(0,t-n.startedMs);
+  data._arrivedMs??=t;
+  const since=(t-data._arrivedMs)/1000;
+  for(const s of data.sessions||[]){
+    s._quietAtArrival??=s.quietSeconds;
+    if(typeof s._quietAtArrival==='number') s.quietSeconds=s._quietAtArrival+since;
+    for(const g of s.goals||[]) for(const n of g.nodes||[])
+      if(n.status==='in_progress'&&n.startedMs&&!n.endedMs) n.durationMs=Math.max(0,t-n.startedMs);
+  }
 }
 
 function render(data){
