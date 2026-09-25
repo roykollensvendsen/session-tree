@@ -92,3 +92,9 @@ name = "the worst step colours the breakdown"
 file = "src/session_tree/state.py"
 find = 'summary\["worst"\] = _worst\(\[s\.get\("view", s\["status"\]\) for s in live_inside\]\)'
 replace = 'summary["worst"] = "pending"'
+
+[[rule]]
+name = "a dismissed question no longer waits"
+file = "src/session_tree/state.py"
+find = 'if dismissal_key\(session_id, q\) not in dismissed'
+replace = 'if True'

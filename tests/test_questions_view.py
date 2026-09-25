@@ -48,3 +48,16 @@ def test_a_question_has_an_address_that_goes_to_it():
     assert "openFocus(" in body, "going to a question does not open its goal"
     assert re.search(r"get\('s'\)", PAGE), "the page does not read ?s= on load"
     assert re.search(r"get\('n'\)", PAGE), "the page does not read &n= on load"
+
+
+def test_a_question_in_the_list_can_be_dismissed():
+    """ADR-ST-006: the button posts with the header the server insists on."""
+    assert "dismiss" in function("renderAsks"), "the list offers no way to put a question away"
+    body = function("dismiss")
+    assert "/api/dismiss" in body, "dismissing does not reach the server"
+    assert "'X-Session-Tree':'dismiss'" in body, "the dismissal lacks the page's own header"
+
+
+def test_a_dismissed_question_no_longer_marks_its_node():
+    body = function("renderGoal")
+    assert "n.askDismissed" in body, "a dismissed question still marks its node as asking"

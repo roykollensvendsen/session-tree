@@ -7,6 +7,14 @@ which reaches the maintainer without becoming public.
 Say what an attacker gains and how you reached it. A proof of concept helps;
 a working exploit is not needed and should not be attached.
 
+What the server lets a reader do: it has no authentication. Anyone who can
+reach its address can read every session it shows and dismiss the questions in
+it ([ADR-ST-006](decisions/ADR-ST-006-a-question-can-be-dismissed.md)). On
+localhost that is you; on a tailnet address (`--host`) it is every device on
+the tailnet. A dismissal only hides a question and writes one file under
+`~/.claude/session-tree/`; it needs the header `X-Session-Tree: dismiss`, so a
+page on another site open in your browser cannot send it.
+
 What is in scope: this project's code, anything it writes, and the workflows
 in this repository. Anything it merely points at is its own maintainer's to
 secure.
