@@ -6,6 +6,12 @@ versions follow [semantic versioning](https://semver.org/spec/v2.0.0.html).
 
 ## Unreleased
 
+### Added
+
+- A **skjul ferdige** switch in the header hides finished nodes and the
+  arrows from them, so a long goal's graph shows what is left. A finished node
+  with a step still running stays. Off by default, remembered per browser.
+
 ### Fixed
 
 - The live stream pushed the whole picture (~0.7 MB) 2.5 times a second even

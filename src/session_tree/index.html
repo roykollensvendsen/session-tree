@@ -201,6 +201,7 @@
     #focus .fhint{display:none}
     #focus .fhead b{font-size:12px}
   }
+  header .hidedone{display:flex;align-items:center;gap:4px;font-size:12px;cursor:pointer;white-space:nowrap}
 </style>
 </head>
 <body>
@@ -208,6 +209,7 @@
   <h1>Session Tree</h1>
   <span class="live"><span class="dot" id="dot"></span><span id="conn">kobler til…</span></span>
   <span class="spacer"></span>
+  <label class="hidedone"><input type="checkbox" id="hidedone"> skjul ferdige</label>
   <span class="key">
     <span><i style="background:var(--active)"></i>jobber nå</span>
     <span><i style="background:var(--done)"></i>ferdig</span>
@@ -527,12 +529,26 @@ let FOLD={};
 try{ FOLD=JSON.parse(localStorage.getItem('st.fold')||'{}')||{}; }catch(e){ FOLD={}; }
 const foldKey=(sess,n)=>sess.sessionId+'/'+n.id;
 function isFolded(sess,n){ const k=foldKey(sess,n); return k in FOLD?FOLD[k]:!!n.breakdown.folded; }
-/* The steps a drawing leaves out: those under a folded node, and theirs. */
+/* Hiding finished goals, the viewer's choice, remembered. Off at first, so
+   nothing goes missing from a graph until someone asks for it. */
+let HIDE_DONE=false;
+try{ HIDE_DONE=localStorage.getItem('st.hideDone')==='1'; }catch(e){}
+/* The finished nodes the switch hides: done, with nothing under them still
+   open -- a done goal whose step is still running stays, or that work vanishes. */
+function finished(goal){
+  const kids={};
+  goal.nodes.forEach(n=>{ if(n.parent) (kids[n.parent]=kids[n.parent]||[]).push(n); });
+  const open=n=>(n.view!=='completed'&&n.view!=='abandoned')||(kids[n.id]||[]).some(open);
+  return new Set(goal.nodes.filter(n=>n.view==='completed'&&!open(n)).map(n=>n.id));
+}
+/* The steps a drawing leaves out: those under a folded node, and theirs, and
+   finished ones when the viewer hides them. */
 function hiddenBy(goal,sess){
   const kids={}, hidden=new Set();
   goal.nodes.forEach(n=>{ if(n.breakdown) kids[n.id]=n.breakdown.children; });
   const hide=id=>(kids[id]||[]).forEach(c=>{ if(!hidden.has(c)){ hidden.add(c); hide(c); } });
   goal.nodes.forEach(n=>{ const folded=n.breakdown&&isFolded(sess,n); if(folded) hide(n.id); });
+  if(HIDE_DONE) finished(goal).forEach(id=>hidden.add(id));
   return hidden;
 }
 /* A goal with some steps folded away. Folding hides a step, not what it
@@ -540,10 +556,15 @@ function hiddenBy(goal,sess){
    still shown that holds it, so a folded box waits on what its steps wait on.
    An edge that would then start and end on the same node is the breakdown's
    own and is left out, and the bands are worked out again with the moved
-   edges, since the server's were for everything unfolded. */
+   edges, since the server's were for everything unfolded. An edge from a
+   hidden finished node is dropped instead: what it held up is free to go. */
 function liftEdges(goal,hidden){
   const all=Object.fromEntries(goal.nodes.map(n=>[n.id,n]));
-  const shown=id=>{ let n=all[id]; while(n&&hidden.has(n.id)) n=all[n.parent]; return n?n.id:null; };
+  const gone=HIDE_DONE?finished(goal):new Set();
+  const shown=id=>{
+    if(gone.has(id)) return null;
+    let n=all[id]; while(n&&hidden.has(n.id)) n=all[n.parent]; return n?n.id:null;
+  };
   const into={}, out={};
   goal.nodes.forEach(n=>(n.blockedBy||[]).forEach(dep=>{
     const a=shown(dep), b=shown(n.id);
@@ -584,9 +605,20 @@ function chipOf(n){
   return null;
 }
 
+/* What a goal draws when the switch has hidden every node in it. */
+function allDone(width){
+  const NS='http://www.w3.org/2000/svg', svg=document.createElementNS(NS,'svg');
+  svg.setAttribute('viewBox',`0 0 ${width} 32`); svg.setAttribute('height',32);
+  const t=document.createElementNS(NS,'text');
+  t.setAttribute('x',8); t.setAttribute('y',20); t.style.fill='#b7e6c6'; t.style.fontSize='12px';
+  t.textContent='✓ alt ferdig (skjult)';
+  svg.appendChild(t); return svg;
+}
+
 function renderGoal(goal,sess,width,size){
   const hidden=hiddenBy(goal,sess);
   if(hidden.size) goal=liftEdges(goal,hidden);
+  if(!goal.nodes.length) return allDone(width);
   const nested=goal.nodes.some(n=>n.parent&&goal.nodes.some(m=>m.id===n.parent));
   const L=nested?layoutNested(goal,width,size):layout(goal,width,size), NS='http://www.w3.org/2000/svg';
   const svg=document.createElementNS(NS,'svg');
@@ -1047,6 +1079,11 @@ addEventListener('keydown',e=>{
 });
 
 function refresh(){ if(LAST) render(LAST); }
+{
+  const box=document.getElementById('hidedone');
+  box.checked=HIDE_DONE;
+  box.onchange=()=>{ HIDE_DONE=box.checked; remember('st.hideDone',HIDE_DONE?'1':'0'); hideTip(); refresh(); };
+}
 
 /* One graph on its own. The same renderGoal draws it, at the window's width,
    and the viewBox is what zooms and pans -- the drawing itself never changes,
