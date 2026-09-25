@@ -214,6 +214,16 @@ handed the work on carries `"session": "<session id>"`. The node gets
 **`↖`** with the node it serves, and a tap goes back. A `parent` that names a
 node or session that does not exist is listed on the card as a broken link.
 
+## Hiding finished goals
+
+A long-running goal fills up with work that is done. Tick **skjul ferdige** in
+the header and every finished node leaves its graph, along with the arrows
+from it, since a finished node no longer holds anything up. A finished node
+with a step that is still running stays, so that work does not vanish with it.
+The count of finished nodes on each goal is unchanged, and a goal with nothing
+left shows a single line saying so. The choice is remembered in that browser;
+it starts off, so nothing is hidden until you ask.
+
 ## Replay
 
 `⏱ replay` on a session header turns the graph into a recording of itself. The
