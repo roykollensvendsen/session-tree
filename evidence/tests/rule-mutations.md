@@ -1,6 +1,6 @@
 # Every rule, turned off in turn
 
-*Run 2026-09-24 by `python scripts/mutate.py --write
+*Run 2026-09-25 by `python scripts/mutate.py --write
 evidence/tests/rule-mutations.md`, which is how to repeat it. The script
 restores every file it touched before it exits.*
 
@@ -10,7 +10,7 @@ Where a rule already exists, this is the substitute. Each rule is disabled in
 turn, by replacing its one line with something that can never hold, and the
 suite is run. A rule whose removal breaks no test is a rule nothing protects.
 
-**Result: 13 of 13 rules turned off the test that names them.** None survived.
+**Result: 14 of 14 rules turned off the test that names them.** None survived.
 
 | Rule turned off | Tests that went red | The test that names it | Did that one go red? |
 |---|---|---|---|
@@ -27,6 +27,7 @@ suite is run. A rule whose removal breaks no test is a rule nothing protects.
 | a step is drawn with its parents goal | 5 | `test_a_step_is_drawn_with_its_parents_goal` | yes |
 | a breakdown nothing outside uses is folded | 2 | `test_a_breakdown_nothing_outside_uses_is_folded` | yes |
 | the worst step colours the breakdown | 1 | `test_the_worst_step_colours_the_breakdown` | yes |
+| a dismissed question no longer waits | 2 | `test_a_dismissed_question_no_longer_waits` | yes |
 
 ## What this does not prove
 

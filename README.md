@@ -192,6 +192,15 @@ on its own and lights the node. The same place has an address of its own,
 `?s=<session id>&n=<node id>`, so a question can be linked to, and the list
 shows each session's working directory, so the terminal it runs in can be found.
 
+A question can outlive its answer. When work moves to another session that
+carried on from a summary, the answer lands there, and the first session's node
+keeps asking. **avvis** beside a question in the list puts it away: the server
+keeps the dismissal in `~/.claude/session-tree/dismissed.json`, so it is gone
+on every device, and the session is no longer marked as asking on its account.
+The node's popover still shows the question, marked `avvist`. A dismissal is of
+that question's text; if the agent asks something new on the same node, it
+shows again ([ADR-ST-006](decisions/ADR-ST-006-a-question-can-be-dismissed.md)).
+
 ## A breakdown folded into its node
 
 When an agent hands part of a goal on, the steps of that part say which node

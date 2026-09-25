@@ -166,6 +166,11 @@
   #asks a{display:block;color:#f5e6a8;text-decoration:none;padding:8px 0;border-top:1px solid #3a3212;line-height:1.45}
   #asks a:hover{color:#fff}
   #asks .where{color:#b9a760;font-size:11px;display:block}
+  #asks .qitem{display:flex;gap:10px;align-items:flex-start;border-top:1px solid #3a3212}
+  #asks .qitem a{flex:1;border-top:none}
+  #asks .dismiss{margin-top:8px;background:none;border:1px solid #5c4d12;color:#b9a760;border-radius:4px;
+    padding:2px 8px;font:inherit;font-size:11px;cursor:pointer}
+  #asks .dismiss:hover{color:#fff;border-color:#b9a760}
   .agentrow{font-size:10.5px;color:var(--dim);padding:5px 10px 7px;margin:0 0 8px;
       border-left:2px solid #6b7a90;background:rgba(255,255,255,.028);border-radius:0 5px 5px 0}
   .agentrow b{color:#cbd6e6;font-weight:600}
@@ -679,7 +684,8 @@ function renderGoal(goal,sess,width,size){
     if(n.view==='abandoned') r.setAttribute('stroke-dasharray','3 3');
     if(n.view==='in_progress') g.classList.add('pulsing');
     // a question on a finished node was answered and never cleared
-    const asking=n.ask&&n.view!=='completed'&&n.view!=='abandoned';
+    // and one the user dismissed no longer waits (ADR-ST-006)
+    const asking=n.ask&&!n.askDismissed&&n.view!=='completed'&&n.view!=='abandoned';
     if(asking) g.classList.add('asks');
     g.appendChild(r);
 
@@ -765,7 +771,7 @@ function renderGoal(goal,sess,width,size){
         `<div class="row" style="color:#f0a8a8">${n.failures.length} kommando${n.failures.length>1?'er':''} feilet · ${esc(n.failures[0])}</div>`:'';
       showTip(e,`<h4>#${n.id} · ${esc(n.subject)}</h4>
         <div style="color:${COLOR[n.view]};font-size:11px;font-weight:600">${LABEL[n.view]||n.view}</div>
-        ${asking?`<div class="ask">? ${esc(n.ask)}</div>`:''}${n.breakdown?`<div class="row">delmål: ${n.breakdown.done}/${n.breakdown.total} ferdig${n.breakdown.disagrees?' — noden er ferdig, men ikke alle delmålene':''}</div>`:''}${n.remote?`<div class="row">arbeid i en annen økt: ${esc(n.remote.title)} · ${n.remote.done}/${n.remote.total} ferdig</div>`:''}${n.description?`<p>${esc(n.description)}</p>`:''}${waiting}${time}${files}${bad}
+        ${asking?`<div class="ask">? ${esc(n.ask)}</div>`:n.askDismissed?`<div class="ask" style="opacity:.6">? ${esc(n.ask)} — avvist</div>`:''}${n.breakdown?`<div class="row">delmål: ${n.breakdown.done}/${n.breakdown.total} ferdig${n.breakdown.disagrees?' — noden er ferdig, men ikke alle delmålene':''}</div>`:''}${n.remote?`<div class="row">arbeid i en annen økt: ${esc(n.remote.title)} · ${n.remote.done}/${n.remote.total} ferdig</div>`:''}${n.description?`<p>${esc(n.description)}</p>`:''}${waiting}${time}${files}${bad}
         <div class="row">${esc(sess.project)}${sess.branch?' · '+esc(sess.branch):''}</div>`,r);
       svg.querySelectorAll('.node').forEach(o=>o.classList.toggle('dim',o.dataset.id!==n.id &&
         !(n.blockedBy||[]).includes(o.dataset.id) && !(n.blocks||[]).includes(o.dataset.id)));
@@ -1012,7 +1018,7 @@ function renderSession(s){
       const live=g.nodes.filter(n=>n.view!=='abandoned');
       const done=live.filter(n=>n.view==='completed').length;
       const card=document.createElement('div'); card.className='goal';
-      const asks=g.nodes.filter(n=>n.ask&&n.view!=='completed'&&n.view!=='abandoned').length;
+      const asks=g.nodes.filter(n=>n.ask&&!n.askDismissed&&n.view!=='completed'&&n.view!=='abandoned').length;
       card.innerHTML=`<div class="gtitle">${asks?`<span class="q" title="${asks} spørsmål venter">?</span>`:''}${esc(g.title)}</div>
         <div class="gmeta">${done}/${live.length} ferdig${g.nodes.length>live.length?` · ${g.nodes.length-live.length} forkastet`:''}</div>
         <div class="bar"><b style="width:${live.length?done/live.length*100:0}%"></b></div>
@@ -1232,18 +1238,33 @@ function renderAsks(data){
   const bar=document.getElementById('asks');
   const items=[];
   data.sessions.forEach(s=>(s.questions||[]).forEach(q=>items.push({s:s,q:q})));
+  ASKED=items;
   bar.classList.toggle('on',items.length>0);
   const was=bar.querySelector('details');
   const keepOpen=was?was.open:items.length<=3;
   bar.innerHTML=items.length?`<details${keepOpen?' open':''}><summary>? ${items.length} venter på svar</summary>`
-    +items.map(({s,q})=>{
+    +items.map(({s,q},i)=>{
       const g=goalOf(s,q.node);
-      return `<a href="${esc(askHref(s.sessionId,q.node))}" data-s="${esc(s.sessionId)}" data-n="${esc(q.node||'')}">
-        ${esc(q.text)}<span class="where">${esc(s.project)} · ${esc(s.name||s.firstPrompt||'(uten navn)').slice(0,60)}${g?' · '+esc(g.title):''}${q.node?' · #'+esc(q.node):''} — ${esc(s.cwd||'')}</span></a>`;
+      return `<div class="qitem"><a href="${esc(askHref(s.sessionId,q.node))}" data-s="${esc(s.sessionId)}" data-n="${esc(q.node||'')}">
+        ${esc(q.text)}<span class="where">${esc(s.project)} · ${esc(s.name||s.firstPrompt||'(uten navn)').slice(0,60)}${g?' · '+esc(g.title):''}${q.node?' · #'+esc(q.node):''} — ${esc(s.cwd||'')}</span></a><button class="dismiss" data-i="${i}" title="Spørsmålet er besvart et annet sted; fjern det fra lista på alle enheter">avvis</button></div>`;
     }).join('')+'</details>':'';
   bar.querySelectorAll('a').forEach(a=>a.onclick=e=>{
     e.preventDefault(); goToQuestion(a.dataset.s,a.dataset.n||null);
   });
+  bar.querySelectorAll('button.dismiss').forEach(b=>b.onclick=()=>dismiss(ASKED[+b.dataset.i],b));
+}
+/* Put a stale question away for good (ADR-ST-006). The server keeps it and
+   the next picture leaves it out; the header is what a page on another site
+   cannot send. */
+let ASKED=[];
+function dismiss(item,button){
+  if(!item) return;
+  button.disabled=true; button.textContent='…';
+  const {s,q}=item;
+  fetch('/api/dismiss',{method:'POST',headers:{'Content-Type':'application/json','X-Session-Tree':'dismiss'},
+    body:JSON.stringify({session:s.sessionId,source:q.source,node:q.node,text:q.text})})
+    .then(r=>{ if(!r.ok) throw new Error(r.status); })
+    .catch(()=>{ button.disabled=false; button.textContent='avvis (feilet)'; });
 }
 /* Go to where a question waits: unfold its session, turn its pager to the
    goal, open that goal on its own around the node and light it. A question

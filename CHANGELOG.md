@@ -8,6 +8,12 @@ versions follow [semantic versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- **avvis** beside a question in the list at the top puts away a question that
+  was answered somewhere the session cannot see, such as a background job that
+  carried the work on. The server keeps the dismissal, so it holds on every
+  device; the node still shows the question, marked `avvist`
+  ([ADR-ST-006](decisions/ADR-ST-006-a-question-can-be-dismissed.md)).
+
 - A **skjul ferdige** switch in the header hides finished nodes and the
   arrows from them, so a long goal's graph shows what is left. A finished node
   with a step still running stays. Off by default, remembered per browser.

@@ -24,7 +24,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from typing import Any
 
-from session_tree.state import build
+from session_tree.state import DISMISSED_FILE, add_dismissal, build
 
 HERE = Path(__file__).resolve().parent
 PAGE = HERE / "index.html"
@@ -34,6 +34,10 @@ POLL_SECONDS = 0.4
 CLIENT_QUEUE_DEPTH = 8
 HEARTBEAT_SECONDS = 15
 QUEUE_WAIT_SECONDS = 5
+# A dismissal must carry this header. A page on another site cannot set it
+# without a CORS preflight, which this server never answers (ADR-ST-006).
+DISMISS_HEADER = ("X-Session-Tree", "dismiss")
+MAX_DISMISS_BYTES = 16_384
 
 _clients: list[queue.Queue[str]] = []
 _clients_lock = threading.Lock()
@@ -122,6 +126,33 @@ class Handler(BaseHTTPRequestHandler):
             self._send_page()
         else:
             self._send(HTTPStatus.NOT_FOUND, "not found", "text/plain")
+
+    def do_POST(self) -> None:
+        """Route a POST request; the only one is a dismissal."""
+        if self.path.split("?")[0] != "/api/dismiss":
+            self._send(HTTPStatus.NOT_FOUND, "not found", "text/plain")
+            return
+        name, value = DISMISS_HEADER
+        if self.headers.get(name) != value:
+            self._send(HTTPStatus.FORBIDDEN, "missing header", "text/plain")
+            return
+        try:
+            length = int(self.headers.get("Content-Length", "0"))
+        except ValueError:
+            length = -1
+        if not 0 < length <= MAX_DISMISS_BYTES:
+            self._send(HTTPStatus.BAD_REQUEST, "bad length", "text/plain")
+            return
+        try:
+            body = json.loads(self.rfile.read(length))
+        except ValueError:
+            body = None
+        if not isinstance(body, dict) or not isinstance(body.get("session"), str):
+            self._send(HTTPStatus.BAD_REQUEST, "bad body", "text/plain")
+            return
+        question = {k: body.get(k) for k in ("source", "node", "text")}
+        add_dismissal(body["session"], question, path=DISMISSED_FILE)
+        self._send(HTTPStatus.NO_CONTENT, "", "text/plain")
 
     def _send(self, code: HTTPStatus, body: str | bytes, content_type: str) -> None:
         raw = body.encode("utf-8") if isinstance(body, str) else body

@@ -28,6 +28,8 @@ from session_tree import codex
 
 HOME = Path.home()
 SESSIONS_DIR = HOME / ".claude" / "sessions"
+# Questions the user dismissed from the view (ADR-ST-006). Written by the server.
+DISMISSED_FILE = HOME / ".claude" / "session-tree" / "dismissed.json"
 PROJECTS_DIR = HOME / ".claude" / "projects"
 
 # An in_progress node nobody has touched for this long is not being worked on,
@@ -88,6 +90,7 @@ class Node(TypedDict, total=False):
     failures: list[str]
     agents: list[dict[str, Any]]
     ask: str | None
+    askDismissed: bool
     parent: str | None
     session: str | None
     breakdown: dict[str, Any]
@@ -831,7 +834,59 @@ def _questions(reader: TranscriptReader, *, idle: bool) -> list[dict[str, Any]]:
     return found
 
 
-def _describe(info: dict[str, Any], reader: TranscriptReader, mtime: float, now: float) -> dict[str, Any]:
+def dismissal_key(session_id: str, question: dict[str, Any]) -> str:
+    """What a dismissal is of: one question's text, in one session, from one source."""
+    return json.dumps(
+        [session_id, question.get("source"), question.get("node"), question.get("text")],
+        ensure_ascii=False,
+    )
+
+
+def load_dismissed(path: Path = DISMISSED_FILE) -> set[str]:
+    """The dismissals kept so far; a missing or unreadable file dismisses nothing."""
+    try:
+        entries = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return set()
+    return {e for e in entries if isinstance(e, str)} if isinstance(entries, list) else set()
+
+
+def add_dismissal(session_id: str, question: dict[str, Any], path: Path = DISMISSED_FILE) -> None:
+    """Keep a dismissal, written whole so a reader never sees half a file."""
+    kept = load_dismissed(path)
+    kept.add(dismissal_key(session_id, question))
+    path.parent.mkdir(parents=True, exist_ok=True)
+    temporary = path.with_suffix(".tmp")
+    temporary.write_text(json.dumps(sorted(kept), ensure_ascii=False), encoding="utf-8")
+    temporary.replace(path)
+
+
+def _not_dismissed(
+    session_id: str, questions: list[dict[str, Any]], dismissed: set[str]
+) -> list[dict[str, Any]]:
+    """The questions still waiting once the user's dismissals are taken out."""
+    return [
+        q
+        for q in questions
+        # RULE: a dismissed question no longer waits
+        if dismissal_key(session_id, q) not in dismissed
+    ]
+
+
+def _mark_dismissed(nodes: list[Node], asked: list[dict[str, Any]], waiting: list[dict[str, Any]]) -> None:
+    """Mark each node whose question the user put away; the node keeps its text."""
+    put_away = {q["node"] for q in asked if q["source"] == "node" and q not in waiting}
+    for node in nodes:
+        node["askDismissed"] = node["id"] in put_away
+
+
+def _describe(
+    info: dict[str, Any],
+    reader: TranscriptReader,
+    mtime: float,
+    now: float,
+    dismissed: set[str] | None = None,
+) -> dict[str, Any]:
     quiet = now - mtime
     nodes = list(reader.tasks.values())
     loose_agents = _attach_agents(nodes, reader.spawns, _subagent_meta(reader.path))
@@ -840,7 +895,9 @@ def _describe(info: dict[str, Any], reader: TranscriptReader, mtime: float, now:
     events = sorted(reader.events, key=lambda e: e["at"])
     alive = _alive(info.get("pid", -1))
     declared = str(info.get("status") or "")
-    questions = _questions(reader, idle=declared == "idle") if alive else []
+    asked = _questions(reader, idle=declared == "idle") if alive else []
+    questions = _not_dismissed(str(info["sessionId"]), asked, dismissed or set())
+    _mark_dismissed(nodes, asked, questions)
     return {
         "sessionId": info["sessionId"],
         "agent": "claude",
@@ -887,6 +944,7 @@ def build(now: float | None = None) -> dict[str, Any]:
     now = now or time.time()
     sessions: list[dict[str, Any]] = []
     seen: set[str] = set()
+    dismissed = load_dismissed()
 
     for info in _sessions_on_disk():
         session_id = str(info["sessionId"])
@@ -904,7 +962,7 @@ def build(now: float | None = None) -> dict[str, Any]:
             mtime = path.stat().st_mtime
         except OSError:
             mtime = 0.0
-        sessions.append(_describe(info, reader, mtime, now))
+        sessions.append(_describe(info, reader, mtime, now, dismissed))
 
     try:
         sessions.extend(codex.build_sessions(now))
