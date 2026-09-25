@@ -117,7 +117,12 @@ longer than a step or two, and keep it true for as long as the work lasts:
   node that waits for it, and `{"ask": null}` once it is answered. The view
   puts a `?` on that node, on its goal and at the top of the page, so someone
   with several sessions open can see where they are needed and get there. A
-  question asked only in the conversation is found only by reading it.
+  question asked only in the conversation is found only by reading it. A turn
+  that ends waiting for the user's go-ahead is waiting on a question too, even
+  when it is worded as an offer ("say merge when you want it", "shall I
+  deploy?"): the step that needs the go-ahead gets a node of its own with the
+  `ask` set, before the turn ends. With no node to hang it on, end with a line
+  starting `needs input:` instead.
 - **Say when you are stuck.** Set the node back to `pending` and create a node
   describing the blocker, or leave it `in_progress` and let it go amber. Do not
   mark something completed to keep the picture green — a green graph that is
