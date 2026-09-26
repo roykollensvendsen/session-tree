@@ -181,15 +181,16 @@ rather than to a node. A review panel usually is one: the seats run, and the
 tasks are created from what they found. Hanging them under whichever node
 happened to be open would invent a tie that is not there.
 
-Each session header says what it needs from a person. `venter på deg` means the
-agent is idle with the process alive — it has answered and is waiting. `står
+Each session header says what it needs from a person. `ledig` means the agent
+is idle with the process alive: it has finished its turn, and has not
+necessarily asked you anything. `står
 stille` means the session claims to be busy while nothing has been written for
 fifteen minutes, which is the one case where going in and looking is worth
 doing.
 
 ## A question waiting on you
 
-`venter på deg` only says a session is idle, and a session that has finished
+`ledig` only says a session is idle, and a session that has finished
 looks the same as one that asked you something. A question gets its own mark,
 **`?`**, wherever it is waiting:
 
