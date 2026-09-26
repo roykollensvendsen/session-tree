@@ -74,7 +74,7 @@ fits the whole graph again, and Esc or the ✕ closes it. A graph of a hundred
 nodes is readable that way, and still updates while it is open.
 
 On a phone the graph covers exactly the part of the page you can see, even when
-the page was pinched in before it opened, so the ✕ and **tilpass** stay on
+the page was pinched in before it opened, so the ✕ and **⤢** (fit) stay on
 screen. The phone's back button or back gesture closes it too.
 
 There is room to spare, so the nodes are drawn larger than in the card, with up
@@ -93,7 +93,7 @@ scroll rather than a ribbon twenty thousand pixels wide.
 The page fits a phone: one goal at a time, thumb-sized buttons, and the
 focused graph pinches to zoom. When a session has more than one independent
 goal, a pager shows one decomposition at a time — swipe left or right, tap a
-dot, or use the arrow keys on a keyboard; "alle" shows every goal at once
+dot, or use the arrow keys on a keyboard; **☰** shows every goal at once
 again. The page you were on is remembered per session.
 
 A quick tap on a node lights its arrows and what they reach, and dims the
@@ -209,7 +209,7 @@ shows each session's working directory, so the terminal it runs in can be found.
 
 A question can outlive its answer. When work moves to another session that
 carried on from a summary, the answer lands there, and the first session's node
-keeps asking. **avvis** beside a question in the list puts it away: the server
+keeps asking. **⊘** (avvis) beside a question in the list puts it away: the server
 keeps the dismissal in `~/.claude/session-tree/dismissed.json`, so it is gone
 on every device, and the session is no longer marked as asking on its account.
 The node's popover still shows the question, marked `avvist`. A dismissal is of
@@ -241,9 +241,10 @@ node or session that does not exist is listed on the card as a broken link.
 
 ## Hiding finished goals
 
-A long-running goal fills up with work that is done. Tick **skjul ferdige** in
-the header and every finished node leaves its graph, along with the arrows
-from it, since a finished node no longer holds anything up. A finished node
+A long-running goal fills up with work that is done. Press **✓**
+(skjul ferdige) in the header, struck through while it is on, and every
+finished node leaves its graph, along with the arrows from it, since a finished
+node no longer holds anything up. A finished node
 with a step that is still running stays, so that work does not vanish with it.
 The count of finished nodes on each goal is unchanged, and a goal with nothing
 left shows a single line saying so. The choice is remembered in that browser;
@@ -251,7 +252,7 @@ it starts off, so nothing is hidden until you ask.
 
 ## Replay
 
-`⏱ replay` on a session header turns the graph into a recording of itself. The
+**⏱** (replay) on a session header turns the graph into a recording of itself. The
 slider is linear in time, so the gaps show where the thinking went; playback
 steps event by event, because a real-time replay of a forty-minute session takes
 forty minutes.

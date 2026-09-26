@@ -6,6 +6,14 @@ versions follow [semantic versioning](https://semver.org/spec/v2.0.0.html).
 
 ## Unreleased
 
+### Changed
+
+- Buttons show a symbol instead of a word, which leaves more room on a phone:
+  **⤢** fits the enlarged graph, **⏱** opens replay, **⏏** returns to live,
+  **↦ 12** jumps to now, **☰** shows every goal, **⊘** puts a question away,
+  and **✓** in the header hides finished nodes, struck through while on. Each
+  keeps its word as the text shown on hover and read by a screen reader.
+
 ### Added
 
 - On a phone, a quick tap on a node lights its arrows without covering the
