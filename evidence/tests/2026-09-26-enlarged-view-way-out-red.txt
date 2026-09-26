@@ -1,0 +1,4 @@
+# Red before the change: af803e0, 2026-09-26T09:20:31Z
+FAILED tests/test_focus_view.py::test_the_enlarged_graph_covers_what_is_visible_of_a_pinched_page
+FAILED tests/test_focus_view.py::test_back_closes_the_enlarged_graph
+2 failed, 4 passed in 0.06s

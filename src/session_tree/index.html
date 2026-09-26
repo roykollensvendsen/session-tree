@@ -1269,14 +1269,34 @@ function firstView(svg,goal,vb){
   const y=cy+80<vb[1]+bh?vb[1]-20:Math.min(cy-bh/3,vb[1]+vb[3]+20-bh);
   return {x:x,y:y,w:bw,h:bh};
 }
+/* A page pinched in before the graph opens shows only part of itself, and a
+   fixed overlay is laid out over the whole page, so its ✕ could sit off screen
+   while the graph takes every pinch for its own zoom: no way out. So the
+   overlay is laid over exactly the part that is visible, and scaled back so it
+   looks as it would unpinched. */
+function coverVisible(){
+  const f=document.getElementById('focus'), v=window.visualViewport;
+  if(!FOCUS.open||!v) return;
+  const s=v.scale||1;
+  Object.assign(f.style,{left:v.offsetLeft+'px',top:v.offsetTop+'px',right:'auto',bottom:'auto',
+    width:v.width*s+'px',height:v.height*s+'px',transform:`scale(${1/s})`,transformOrigin:'0 0'});
+}
 function openFocus(goal,sess,target){
   FOCUS.open=true; FOCUS.sessionId=sess.sessionId; FOCUS.title=goal.title; FOCUS.view=null; FOCUS.base=null;
   FOCUS.target=target||null;
+  // the phone's back gesture is a way out that does not depend on any button
+  if(!(history.state&&history.state.focus)) history.pushState({focus:true},'');
   document.getElementById('focus').classList.add('on');
+  coverVisible();
   drawFocus();
 }
-function closeFocus(){
+function closeFocus(fromBack){
   FOCUS.open=false; document.getElementById('focus').classList.remove('on'); fbox().innerHTML=''; hideTip();
+  if(fromBack!==true&&history.state&&history.state.focus) history.back();
+}
+addEventListener('popstate',()=>{ if(FOCUS.open) closeFocus(true); });
+if(window.visualViewport){
+  visualViewport.addEventListener('resize',coverVisible); visualViewport.addEventListener('scroll',coverVisible);
 }
 (function wireFocus(){
   const body=fbox();
