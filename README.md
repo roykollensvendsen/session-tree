@@ -73,6 +73,10 @@ There the mouse wheel zooms around the pointer, a drag pans, a double-click
 fits the whole graph again, and Esc or the ✕ closes it. A graph of a hundred
 nodes is readable that way, and still updates while it is open.
 
+On a phone the graph covers exactly the part of the page you can see, even when
+the page was pinched in before it opened, so the ✕ and **tilpass** stay on
+screen. The phone's back button or back gesture closes it too.
+
 There is room to spare, so the nodes are drawn larger than in the card, with up
 to three lines of each subject instead of one clipped line. When the whole
 graph would only fit by shrinking that text below reading size, it opens at

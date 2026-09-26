@@ -24,6 +24,11 @@ versions follow [semantic versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- On a phone, a page pinched in before a graph was opened full screen put
+  its **✕** and **tilpass** off screen, and the graph took every pinch for its
+  own zoom, so there was no way back. The graph now covers exactly the part of
+  the page that is visible, and the phone's back gesture closes it too.
+
 - An arrow out of an unfolded breakdown started just under the box's heading
   and ran down through the steps inside it. It now leaves from the bottom of
   the box.
