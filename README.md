@@ -92,9 +92,14 @@ goal, a pager shows one decomposition at a time — swipe left or right, tap a
 dot, or use the arrow keys on a keyboard; "alle" shows every goal at once
 again. The page you were on is remembered per session.
 
-A tap on a node opens its popover. It is always placed wholly on the screen,
-next to the node where there is room, and scrolls inside itself when it is
-taller than the screen; that holds when the page is pinched in too.
+A quick tap on a node lights its arrows and what they reach, and dims the
+rest, the way a resting mouse does; the highlight stays while the graph
+redraws. A tap on the same node again, or on empty space, puts it out. Hold a
+finger on a node for half a second to open its popover, which has a ✕ to close
+it. A press that turns into a scroll or a pinch does neither. The popover is
+always placed wholly on the screen, next to the node where there is room, and
+scrolls inside itself when it is taller than the screen; that holds when the
+page is pinched in too.
 
 The server listens on localhost only. To reach it from a phone, bind it to
 your [Tailscale](https://tailscale.com) address instead, so that only devices
