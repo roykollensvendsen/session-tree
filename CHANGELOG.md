@@ -8,6 +8,10 @@ versions follow [semantic versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
+- A graph opened full screen now starts fitted, with the whole graph on
+  screen. Before, a graph too big to fit at reading size opened at full size
+  around the node being worked on, and you had to find your way from there.
+
 - Buttons show a symbol instead of a word, which leaves more room on a phone:
   **⤢** fits the enlarged graph, **⏱** opens replay, **⏏** returns to live,
   **↦ 12** jumps to now, **☰** shows every goal, **⊘** puts a question away,
