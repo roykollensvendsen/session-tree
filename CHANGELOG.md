@@ -20,6 +20,11 @@ versions follow [semantic versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- On a narrow phone, a session with many goals pushed the **›** button
+  and **alle** off the right edge of the screen, because the row of dots
+  could not shrink. The dots now wrap onto a row of their own under the
+  buttons.
+
 - The live stream pushed the whole picture (~0.7 MB) 2.5 times a second even
   when nothing happened, because the clock and running durations are part of
   it: 97 MB a minute to every open page, and a browser tab that grew to 20 GB
