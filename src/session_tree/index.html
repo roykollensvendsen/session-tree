@@ -185,7 +185,8 @@
       padding:2px 10px;font-size:12px;cursor:pointer;line-height:1.6}
   .pager button:hover{border-color:#3d4a5c}
   .pager button.on{color:#d9c9f5;border-color:#9370db;background:rgba(147,112,219,.16)}
-  .pager .dots{display:flex;gap:5px;align-items:center}
+  /* many goals: the dots wrap rather than push next and alle off the edge */
+  .pager .dots{display:flex;flex-wrap:wrap;gap:5px;align-items:center;min-width:0}
   .pager .dots i{width:8px;height:8px;border-radius:50%;background:var(--pending);cursor:pointer;display:block}
   .pager .dots i.on{background:#9370db}
   .pager .n{font-variant-numeric:tabular-nums;min-width:36px;text-align:center}
@@ -203,6 +204,9 @@
     .rp{flex-wrap:wrap}
     .rp button,.rbtn,.pager button,#focus button,.behind{min-height:40px;min-width:40px;padding:6px 12px;font-size:13px}
     .pager .dots i{width:14px;height:14px}
+    /* the thumb-sized dots get a row of their own under the buttons */
+    .pager{flex-wrap:wrap}
+    .pager .dots{order:1;flex:1 1 100%}
     #focus .fhint{display:none}
     #focus .fhead b{font-size:12px}
   }

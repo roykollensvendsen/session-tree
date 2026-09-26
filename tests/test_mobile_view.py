@@ -47,3 +47,12 @@ def test_the_server_listens_where_it_is_told(monkeypatch):
     with server.make_server(0, "127.0.0.1") as httpd:
         assert httpd.server_address[0] == "127.0.0.1"
         assert httpd.socket.family == socket.AF_INET
+
+
+def test_many_goals_do_not_push_the_pager_buttons_off_a_phone():
+    dots = re.search(r"\.pager \.dots\{([^}]*)\}", PAGE)
+    assert dots, "no rule for the pager's dots"
+    assert "flex-wrap:wrap" in dots.group(1), "the dots do not wrap, so many goals overflow"
+    assert "min-width:0" in dots.group(1), "the dots cannot shrink, so next and alle go past the edge"
+    phone = PAGE.split("@media (max-width:640px)", 1)[1].split("\n  }\n", 1)[0]
+    assert ".pager{flex-wrap:wrap}" in phone, "on a phone the dots do not get a row of their own"
