@@ -221,7 +221,8 @@ of the worst of its steps, so a red step still shows. A tap unfolds it: the node
 becomes a box, its own subject the heading, with its steps drawn inside as a
 small graph of their own, and the chip, now `▾`, in its top right corner. In the
 full-screen view the chip stays where the finger tapped it. The node is the part of the
-network it stands for, folded or not. A second tap folds it again, and the
+network it stands for, folded or not: an arrow into it meets the top of the box and
+an arrow out of it leaves from the bottom. A second tap folds it again, and the
 choice is remembered. If a node outside the breakdown depends on one of its steps, the
 breakdown is drawn unfolded from the start, because folding would hide that
 dependency. A node that is done while one of its steps is still open says so

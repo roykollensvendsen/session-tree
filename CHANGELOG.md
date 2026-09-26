@@ -24,6 +24,10 @@ versions follow [semantic versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- An arrow out of an unfolded breakdown started just under the box's heading
+  and ran down through the steps inside it. It now leaves from the bottom of
+  the box.
+
 - A goal with many steps on the same level, such as seventy that wait on
   nothing, drew them as slivers a few pixels wide, so the graph looked like a
   handful of lines. A level too wide to fit now wraps onto more rows, each step

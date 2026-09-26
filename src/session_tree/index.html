@@ -540,6 +540,13 @@ function layout(goal,width,size){
   return {pos,bands:ds,bandTop,height:y+6,W};
 }
 
+/* Where an arrow from node a to node b leaves and arrives: the bottom of a,
+   the top of b. An unfolded box's h is only its heading, so an arrow out of
+   one leaves from the bottom of the frame round its steps, not through them. */
+function edgeEnds(a,b){
+  return {x1:a.cx,y1:a.frame?a.frame.y+a.frame.h:a.y+a.h,x2:b.cx,y2:b.y};
+}
+
 /* The layout when a breakdown is unfolded: the node becomes a box, its own
    subject the header across the top, and its steps a small graph of their own
    inside it -- so the node is visibly the part of the network it stands for.
@@ -754,9 +761,9 @@ function renderGoal(goal,sess,width,size){
       if(!a||!b) return;
       // a step inside its own box needs no wire to the box: containment says it
       if(L.holds&&(L.holds(dep,n.id)||L.holds(n.id,dep))) return;
-      const p=document.createElementNS(NS,'path');
-      const my=(a.cy+a.h/2+b.y)/2;
-      p.setAttribute('d',`M${a.cx},${a.y+a.h} C${a.cx},${my} ${b.cx},${my} ${b.cx},${b.y}`);
+      const p=document.createElementNS(NS,'path'), e=edgeEnds(a,b);
+      const my=(e.y1+e.y2)/2;
+      p.setAttribute('d',`M${e.x1},${e.y1} C${e.x1},${my} ${e.x2},${my} ${e.x2},${e.y2}`);
       p.setAttribute('class','edge');
       p.dataset.from=dep; p.dataset.to=n.id;
       svg.appendChild(p);
