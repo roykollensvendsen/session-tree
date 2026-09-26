@@ -57,3 +57,14 @@ def test_the_deferred_list_gives_every_row_a_trigger():
         assert len(cells) == 3, f"a deferred row needs what, the trigger, and why not: {row[:60]}"
         assert cells[1], f"no trigger on: {cells[0]}"
         assert cells[2], f"no reason on: {cells[0]}"
+
+
+def test_every_gate_the_contributing_guide_names_runs_before_a_push():
+    """The hook is only worth having if it fails where CI would."""
+    guide = read("CONTRIBUTING.md")
+    hook = ROOT / ".githooks/pre-push"
+    assert hook.exists(), "there is no pre-push hook"
+    block = re.search(r"## The gates.*?```\n(.*?)```", guide, re.DOTALL)
+    assert block, "CONTRIBUTING.md no longer lists the gates"
+    for line in (x.strip() for x in block.group(1).splitlines() if x.strip()):
+        assert line in hook.read_text(), f"`{line}` is a gate and the pre-push hook does not run it"

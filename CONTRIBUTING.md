@@ -29,6 +29,11 @@ uv run pytest -q --cov
 committed --no-merge-commit origin/main..HEAD
 ```
 
+A `pre-push` hook in `.githooks/` runs the same lines each time you push, so a
+change that would fail here is stopped before it leaves your machine. It is
+turned on with the `commit-msg` hook, below. It checks the working tree, not the
+commits being pushed, so push from a clean tree.
+
 Run them after the last edit, not before it. A file edited after the format
 gate ran will fail in continuous integration, which is the cheapest possible
 way to learn that the gates are not a ritual performed once.
