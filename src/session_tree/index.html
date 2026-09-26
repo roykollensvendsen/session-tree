@@ -392,9 +392,9 @@ function rehover(){
    size, and a subject gets up to three lines. Sizes are in the drawing's own
    units, which are CSS pixels when the focus is at full size. */
 const SIZE={
-  card:{nodeW:190,minW:300,grow:false,pad:7,idFont:9,font:10.5,lines:1,lineH:11,idTop:12,textTop:23,
+  card:{nodeW:190,minNodeW:110,rowMax:0,minW:300,grow:false,pad:7,idFont:9,font:10.5,lines:1,lineH:11,idTop:12,textTop:23,
         agentH:12,agentFont:9,padBottom:7,bandGap:22,colGap:8,chipW:44},
-  large:{nodeW:250,minW:0,grow:true,pad:10,idFont:11.5,font:14,lines:3,lineH:18,idTop:16,textTop:34,
+  large:{nodeW:250,minNodeW:250,rowMax:6,minW:0,grow:true,pad:10,idFont:11.5,font:14,lines:3,lineH:18,idTop:16,textTop:34,
          agentH:17,agentFont:11.5,padBottom:10,bandGap:40,colGap:18,chipW:66},
 };
 const FONT='ui-sans-serif,-apple-system,"Segoe UI",Roboto,sans-serif';
@@ -417,6 +417,14 @@ function wrapLines(text,width,px,lines){
   return line?out.concat(line):out;
 }
 
+/* How many steps of a level sit side by side before it wraps onto another row:
+   as many as fit at a readable width, and enlarged at least rowMax, since that
+   view pans -- but no more, or a level of seventy steps is a ribbon twenty
+   thousand pixels wide that no zoom makes readable. */
+function perRow(size,width){
+  return Math.max(1,size.rowMax,Math.floor((width+size.colGap)/(size.minNodeW+size.colGap)));
+}
+
 /* Bands are the order the work has to happen in, not a clock: a node sits in
    the first band where every dependency above it is already done. */
 function layout(goal,width,size){
@@ -425,7 +433,8 @@ function layout(goal,width,size){
   nodes.forEach(n=>{ const d=depth[n.id]||0; if(!bands.has(d))bands.set(d,[]); bands.get(d).push(n); });
   const ds=[...bands.keys()].sort((a,b)=>a-b);
   // the widest band decides the width when the size asks for more than is given
-  const widest=Math.max(1,...[...bands.values()].map(r=>r.length));
+  const fit=perRow(size,width||330);
+  const widest=Math.max(1,...[...bands.values()].map(r=>Math.min(r.length,fit)));
   const W=Math.max(size.minW,width||330,size.grow?widest*(size.nodeW+size.colGap):0);
   const pos={}, lines={};
   // a subject takes the lines it needs, and subagents add a row each
@@ -434,26 +443,30 @@ function layout(goal,width,size){
   let y=16;
   const bandTop=[];
   ds.forEach((d,bi)=>{
-    const row=bands.get(d);
+    const band=bands.get(d);
     bandTop[bi]=y;
     // pull each node toward the average x of what it depends on, so the wires
     // cross as little as possible without a real layered layout
-    row.forEach(n=>{
+    band.forEach(n=>{
       const ups=(n.blockedBy||[]).map(i=>pos[i]).filter(Boolean);
       n._h=ups.length?ups.reduce((a,p)=>a+p.cx,0)/ups.length:W/2;
     });
-    row.sort((a,b)=>a._h-b._h);
-    // a card spreads a band across its width; a graph that grew to its widest
-    // band packs the others around the middle, so they stay near each other
-    const gap=size.grow?size.nodeW+size.colGap:W/row.length, w=Math.min(gap-size.colGap,size.nodeW);
-    const left=(W-gap*row.length)/2;
-    row.forEach(n=>{ lines[n.id]=wrapLines(n.subject,w-2*size.pad-(chipOf(n)?size.chipW:0),size.font,size.lines); });
-    const tallest=Math.max(...row.map(heightOf));
-    row.forEach((n,i)=>{
-      const cx=left+gap*i+gap/2, h=heightOf(n);
-      pos[n.id]={x:cx-w/2,y:y,w:w,h:h,cx:cx,cy:y+h/2,band:bi,lines:lines[n.id]};
-    });
-    y+=tallest+size.bandGap;
+    band.sort((a,b)=>a._h-b._h);
+    // a level wider than fits wraps onto rows, all of them on one grid
+    for(let at=0;at<band.length;at+=fit){
+      const row=band.slice(at,at+fit), cols=band.length>fit?fit:row.length;
+      // a card spreads a row across its width; a graph that grew to its widest
+      // row packs the others around the middle, so they stay near each other
+      const gap=size.grow?size.nodeW+size.colGap:W/cols, w=Math.min(gap-size.colGap,size.nodeW);
+      const left=(W-gap*row.length)/2;
+      row.forEach(n=>{ lines[n.id]=wrapLines(n.subject,w-2*size.pad-(chipOf(n)?size.chipW:0),size.font,size.lines); });
+      const tallest=Math.max(...row.map(heightOf));
+      row.forEach((n,i)=>{
+        const cx=left+gap*i+gap/2, h=heightOf(n);
+        pos[n.id]={x:cx-w/2,y:y,w:w,h:h,cx:cx,cy:y+h/2,band:bi,lines:lines[n.id]};
+      });
+      y+=tallest+(at+fit<band.length?size.colGap:size.bandGap);
+    }
   });
   return {pos,bands:ds,bandTop,height:y+6,W};
 }
@@ -474,10 +487,15 @@ function layoutNested(goal,width,size){
   const holder=(id,level)=>{ for(let n=byId[id];n;n=byId[n.parent]) if(level.has(n.id)) return n.id; return null; };
   const headOf=n=>size.textTop+(lines[n.id].length-1)*size.lineH+size.padBottom
     +((n.agents||[]).length?(n.agents.length*size.agentH+4):0);
-  function arrange(members){
+  // the widest a row of boxes may run before the level wraps: the card's own
+  // width, or enlarged, perRow boxes
+  const limit=size.grow?perRow(size,width||330)*(size.nodeW+size.colGap)-size.colGap
+    :(width||330)-2*size.colGap;
+  function arrange(members,limit){
     const level=new Set(members.map(n=>n.id));
     members.forEach(n=>{
-      const inner=kids[n.id]?arrange(kids[n.id]):null;
+      // a box's steps have its width less its padding to wrap in
+      const inner=kids[n.id]?arrange(kids[n.id],limit-2*size.pad):null;
       const w=inner?Math.max(size.nodeW,inner.W+2*size.pad):size.nodeW;
       // the header reads like the node it is: wrapped at a node's width, however
       // wide the box under it has grown
@@ -498,24 +516,32 @@ function layoutNested(goal,width,size){
     members.forEach(n=>{ (rows[depth[n.id]]=rows[depth[n.id]]||[]).push(n); });
     const dense=rows.filter(Boolean);
     const rowW=r=>r.reduce((a,n)=>a+blocks[n.id].w,0)+size.colGap*(r.length-1);
-    const W=Math.max(...dense.map(rowW));
+    // a level wider than the limit wraps; a box wider than it on its own gets a row to itself
+    const W=Math.max(...dense.map(r=>Math.min(rowW(r),limit)),...members.map(n=>blocks[n.id].w));
     const place={}, tops=[];
     let y=0;
-    dense.forEach((row,ri)=>{
+    dense.forEach((band,ri)=>{
       // the same pull toward what a node waits on as the flat layout uses
-      row.forEach(n=>{
+      band.forEach(n=>{
         const ups=depsOf(n).map(d=>place[d]).filter(Boolean);
         n._h=ups.length?ups.reduce((a,p)=>a+p.x+blocks[p.id].w/2,0)/ups.length:W/2;
       });
-      row.sort((a,b)=>a._h-b._h);
-      let x=(W-rowW(row))/2;
+      band.sort((a,b)=>a._h-b._h);
+      const rows=[[]];
+      band.forEach(n=>{
+        const row=rows[rows.length-1];
+        if(row.length&&rowW([...row,n])>W) rows.push([n]); else row.push(n);
+      });
       tops.push(y);
-      row.forEach(n=>{ place[n.id]={id:n.id,x:x,y:y,row:ri}; x+=blocks[n.id].w+size.colGap; });
-      y+=Math.max(...row.map(n=>blocks[n.id].h))+size.bandGap;
+      rows.forEach((row,k)=>{
+        let x=(W-rowW(row))/2;
+        row.forEach(n=>{ place[n.id]={id:n.id,x:x,y:y,row:ri}; x+=blocks[n.id].w+size.colGap; });
+        y+=Math.max(...row.map(n=>blocks[n.id].h))+(k<rows.length-1?size.colGap:size.bandGap);
+      });
     });
     return {W:W,H:y-size.bandGap,place:place,tops:tops,members:members};
   }
-  const top=arrange(goal.nodes.filter(n=>!(n.parent&&byId[n.parent])));
+  const top=arrange(goal.nodes.filter(n=>!(n.parent&&byId[n.parent])),limit);
   const W=Math.max(size.minW,width||330,top.W+2*size.colGap), pos={};
   // absolute places, box by box; a step keeps the band of the box it is in
   const put=(res,ox,oy,band)=>res.members.forEach(n=>{
