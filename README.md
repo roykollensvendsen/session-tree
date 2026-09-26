@@ -86,7 +86,9 @@ Steps that wait on the same things share a level, drawn side by side. When a
 level has more steps than fit at a readable width, it wraps onto more rows
 instead of squeezing them: in a card, as many per row as the card has room for;
 enlarged, at most six per row, so a level of seventy steps becomes a page to
-scroll rather than a ribbon twenty thousand pixels wide.
+scroll rather than a ribbon twenty thousand pixels wide. In a level that wraps,
+the steps still open come first and the finished ones last, so what is left is
+what you see first. A finished step is drawn quieter than an open one.
 
 ## On your phone
 

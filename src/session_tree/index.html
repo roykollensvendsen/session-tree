@@ -508,6 +508,12 @@ function perRow(size,width){
   return Math.max(1,size.rowMax,Math.floor((width+size.colGap)/(size.minNodeW+size.colGap)));
 }
 
+/* A level too wide to fit wraps; then the steps still open go first and the
+   finished ones last, so what is left is what the viewer sees first. Within
+   each group the order the caller gave is kept. */
+const isDone=n=>n.view==='completed'||n.view==='abandoned';
+function openFirst(band){ return [...band.filter(n=>!isDone(n)),...band.filter(isDone)]; }
+
 /* Bands are the order the work has to happen in, not a clock: a node sits in
    the first band where every dependency above it is already done. */
 function layout(goal,width,size){
@@ -535,6 +541,7 @@ function layout(goal,width,size){
       n._h=ups.length?ups.reduce((a,p)=>a+p.cx,0)/ups.length:W/2;
     });
     band.sort((a,b)=>a._h-b._h);
+    if(band.length>fit) band.splice(0,band.length,...openFirst(band));
     // a level wider than fits wraps onto rows, all of them on one grid
     for(let at=0;at<band.length;at+=fit){
       const row=band.slice(at,at+fit), cols=band.length>fit?fit:row.length;
@@ -617,6 +624,7 @@ function layoutNested(goal,width,size){
         n._h=ups.length?ups.reduce((a,p)=>a+p.x+blocks[p.id].w/2,0)/ups.length:W/2;
       });
       band.sort((a,b)=>a._h-b._h);
+      if(rowW(band)>W) band.splice(0,band.length,...openFirst(band));
       const rows=[[]];
       band.forEach(n=>{
         const row=rows[rows.length-1];
@@ -802,6 +810,8 @@ function renderGoal(goal,sess,width,size){
                           n.view==='stalled'?'rgba(234,179,8,.13)':'rgba(255,255,255,.035)');
     r.setAttribute('stroke',c);
     r.setAttribute('stroke-width',n.view==='in_progress'?2:1.2);
+    // finished work stays readable but steps back behind what is still open
+    if(n.view==='completed') r.setAttribute('stroke-opacity',.45);
     if(n.view==='abandoned') r.setAttribute('stroke-dasharray','3 3');
     if(n.view==='in_progress') g.classList.add('pulsing');
     // a question on a finished node was answered and never cleared
