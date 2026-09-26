@@ -44,6 +44,11 @@ versions follow [semantic versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- On a phone the list of questions stayed stuck at the top and covered a
+  quarter of the screen. It now scrolls away with the page, and **? 3** in the
+  header brings it back. The header itself also stays at the top now; it used
+  to scroll away after the first screen.
+
 - With every goal of a session shown at once, the buttons and dots for turning
   between goals were still drawn, and the arrow keys still turned a page nobody
   could see. Now only **⊟** stays, to go back to one at a time.

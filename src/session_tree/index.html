@@ -12,7 +12,9 @@
     --stall:#eab308; --block:#ef4444; --gone:#3a4150;
   }
   *{box-sizing:border-box}
-  html,body{margin:0;height:100%}
+  /* min-height, not height: a body one screen tall lets the sticky header
+     scroll away after the first screen */
+  html,body{margin:0;min-height:100%}
   body{
     background:var(--bg); color:var(--ink);
     font:13px/1.45 ui-sans-serif,-apple-system,"Segoe UI",Roboto,sans-serif;
@@ -214,7 +216,13 @@
     .pager .dots{order:1;flex:1 1 100%}
     #focus .fhint{display:none}
     #focus .fhead b{font-size:12px}
+    /* a stuck list of questions covers a quarter of a phone; it scrolls away
+       instead, and the count in the header brings it back */
+    #asks{position:static}
+    header .askcount:not([hidden]){display:inline-block}
   }
+  header .askcount{display:none;background:#1d1a0c;border:1px solid #5c4d12;color:#facc15;border-radius:6px;
+      padding:2px 9px;font:inherit;font-size:13px;font-weight:700;cursor:pointer;min-height:32px}
   header .hidedone{background:var(--panel2);border:1px solid var(--line);color:var(--ink);border-radius:6px;
       padding:2px 9px;font-size:13px;cursor:pointer}
   /* on: finished nodes are hidden, so the tick is struck out */
@@ -226,6 +234,7 @@
   <h1>Session Tree</h1>
   <span class="live"><span class="dot" id="dot"></span><span id="conn">kobler til…</span></span>
   <span class="spacer"></span>
+  <button class="askcount" id="askcount" hidden title="spørsmål til deg" aria-label="spørsmål til deg"></button>
   <button class="hidedone" id="hidedone" title="skjul ferdige" aria-label="skjul ferdige" aria-pressed="false">✓</button>
   <span class="key">
     <span><i style="background:var(--active)"></i>jobber nå</span>
@@ -1379,6 +1388,10 @@ function renderAsks(data){
     e.preventDefault(); goToQuestion(a.dataset.s,a.dataset.n||null);
   });
   bar.querySelectorAll('button.dismiss').forEach(b=>b.onclick=()=>dismiss(ASKED[+b.dataset.i],b));
+  // on a phone the list scrolls away; the count in the header brings it back open
+  const count=document.getElementById('askcount');
+  count.hidden=!items.length; count.textContent=`? ${items.length}`;
+  count.onclick=()=>{ const d=bar.querySelector('details'); if(d) d.open=true; scrollTo({top:0}); };
 }
 /* Put a stale question away for good (ADR-ST-006). The server keeps it and
    the next picture leaves it out; the header is what a page on another site
