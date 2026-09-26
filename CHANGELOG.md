@@ -20,6 +20,11 @@ versions follow [semantic versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- A goal with many steps on the same level, such as seventy that wait on
+  nothing, drew them as slivers a few pixels wide, so the graph looked like a
+  handful of lines. A level too wide to fit now wraps onto more rows, each step
+  wide enough to read, in the card and in the enlarged graph.
+
 - On a narrow phone, a session with many goals pushed the **›** button
   and **alle** off the right edge of the screen, because the row of dots
   could not shrink. The dots now wrap onto a row of their own under the

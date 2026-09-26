@@ -1,0 +1,11 @@
+# Red before the change: 667546d, 2026-09-26T08:08:30Z
+FAILED tests/test_wide_level_view.py::test_the_readme_says_a_wide_level_wraps
+FAILED tests/test_wide_level_view.py::test_a_wide_level_keeps_every_step_readable[card-340-flat]
+FAILED tests/test_wide_level_view.py::test_a_wide_level_keeps_every_step_readable[card-340-with a breakdown open]
+FAILED tests/test_wide_level_view.py::test_a_wide_level_keeps_every_step_readable[card-1000-flat]
+FAILED tests/test_wide_level_view.py::test_a_wide_level_keeps_every_step_readable[card-1000-with a breakdown open]
+FAILED tests/test_wide_level_view.py::test_a_wide_level_keeps_every_step_readable[large-350-flat]
+FAILED tests/test_wide_level_view.py::test_a_wide_level_keeps_every_step_readable[large-350-with a breakdown open]
+FAILED tests/test_wide_level_view.py::test_a_wide_level_keeps_every_step_readable[large-1400-flat]
+FAILED tests/test_wide_level_view.py::test_a_wide_level_keeps_every_step_readable[large-1400-with a breakdown open]
+9 failed in 0.81s
