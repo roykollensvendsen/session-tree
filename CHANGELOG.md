@@ -40,6 +40,10 @@ versions follow [semantic versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- With every goal of a session shown at once, the buttons and dots for turning
+  between goals were still drawn, and the arrow keys still turned a page nobody
+  could see. Now only the lit **☰** stays, to go back to one at a time.
+
 - On a phone, a page pinched in before a graph was opened full screen put
   its **✕** and **tilpass** off screen, and the graph took every pinch for its
   own zoom, so there was no way back. The graph now covers exactly the part of

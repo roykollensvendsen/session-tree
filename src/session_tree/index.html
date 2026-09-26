@@ -1163,9 +1163,12 @@ function renderSession(s){
    at once. A tap on a dot goes straight to that goal. */
 function pagerBar(s,goals,page){
   const bar=document.createElement('div'); bar.className='pager';
+  const all=`<button class="all${pagerAll?' on':''}" title="alle målene på én gang" aria-label="alle målene på én gang">☰</button>`;
+  const flip=()=>{ pagerAll=!pagerAll; remember('st.pagerAll',pagerAll?'1':'0'); refresh(); };
+  // every goal is shown: nothing to turn, so only the way back is left
+  if(pagerAll){ bar.innerHTML=`<span style="flex:1"></span>${all}`; bar.querySelector('.all').onclick=flip; return bar; }
   bar.innerHTML=`<button title="forrige mål">‹</button><span class="dots"></span><span class="n">${page+1} / ${goals.length}</span>
-    <button title="neste mål">›</button><span class="ptitle">${pagerAll?'':esc(goals[page].title)}</span>
-    <button class="all${pagerAll?' on':''}" title="alle målene på én gang" aria-label="alle målene på én gang">☰</button>`;
+    <button title="neste mål">›</button><span class="ptitle">${esc(goals[page].title)}</span>${all}`;
   const [prev,,,next]=bar.children;
   prev.onclick=()=>turnPage(s.sessionId,-1,goals.length);
   next.onclick=()=>turnPage(s.sessionId,1,goals.length);
@@ -1175,7 +1178,7 @@ function pagerBar(s,goals,page){
     d.onclick=()=>{ PAGE[s.sessionId]=i; remember('st.page',JSON.stringify(PAGE)); refresh(); };
     dots.appendChild(d);
   });
-  bar.querySelector('.all').onclick=()=>{ pagerAll=!pagerAll; remember('st.pagerAll',pagerAll?'1':'0'); refresh(); };
+  bar.querySelector('.all').onclick=flip;
   return bar;
 }
 /* A horizontal swipe on the paged goals turns the page; a vertical one is the
@@ -1193,6 +1196,7 @@ function wireSwipe(el,sessionId,count){
 addEventListener('keydown',e=>{
   if(FOCUS.open||e.target.matches('input,textarea,button')) return;
   if(e.key!=='ArrowLeft'&&e.key!=='ArrowRight') return;
+  if(pagerAll) return;  // every goal is shown; there is no page to turn
   // the arrows turn the first open pager on the page
   const bar=document.querySelector('.sess:not(.closed) .pager'); if(!bar||!LAST) return;
   const el=bar.closest('.sess'), idx=[...document.querySelectorAll('.sess')].indexOf(el);
