@@ -8,6 +8,10 @@ versions follow [semantic versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
+- A session with a question for you now comes first on the page, and is no
+  longer drawn dimmer when it has been quiet for a while; nor is one that
+  stands still. Before, the session that needed you could be the greyest one.
+
 - A session whose agent has finished its turn is labelled **ledig** instead of
   **venter på deg**, which read as if it had asked something. A question still
   has its own **?**.
