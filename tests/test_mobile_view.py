@@ -60,9 +60,7 @@ def test_many_goals_do_not_push_the_pager_buttons_off_a_phone():
 
 def test_with_every_goal_shown_only_the_switch_back_is_left():
     block = re.search(r"## On your phone\n(.*?)\n## ", README, re.DOTALL)
-    assert "only the lit **☰** stays" in block.group(1), (
-        "the README does not say what is left above every goal"
-    )
+    assert "only **⊟** stays" in block.group(1), "the README does not say what is left above every goal"
     bar = PAGE.split("function pagerBar(", 1)[1].split("\nfunction ", 1)[0]
     head = bar.split("bar.innerHTML=", 1)[0]
     assert "if(pagerAll)" in head, "the pager draws its page controls even with every goal shown"

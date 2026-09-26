@@ -18,7 +18,8 @@ BUTTONS = [
     ("⤢", "tilpass"),
     ("⏱", "replay"),
     ("⏏", "tilbake til live"),
-    ("☰", "alle målene på én gang"),
+    ("⊞", "alle målene på én gang"),
+    ("⊟", "ett mål om gangen"),
     ("⊘", "avvis"),
     ("✓", "skjul ferdige"),
 ]
@@ -31,7 +32,7 @@ def buttons() -> list[str]:
 
 @pytest.mark.parametrize(("symbol", "word"), BUTTONS, ids=[w for _, w in BUTTONS])
 def test_the_button_shows_its_symbol_and_keeps_its_word(symbol, word):
-    found = [b for b in buttons() if f'title="{word}' in b or f"title='{word}" in b]
+    found = [b for b in buttons() if f'title="{word}' in b or f"'{word}'" in b.split(">", 1)[0]]
     assert found, f"no button titled {word!r}"
     label = re.sub(r"<[^>]+>", "", found[0]).strip()
     assert symbol in label, f"the {word!r} button shows {label!r}, not {symbol}"

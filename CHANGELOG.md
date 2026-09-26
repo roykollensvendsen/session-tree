@@ -18,7 +18,7 @@ versions follow [semantic versioning](https://semver.org/spec/v2.0.0.html).
 
 - Buttons show a symbol instead of a word, which leaves more room on a phone:
   **⤢** fits the enlarged graph, **⏱** opens replay, **⏏** returns to live,
-  **↦ 12** jumps to now, **☰** shows every goal, **⊘** puts a question away,
+  **↦ 12** jumps to now, **⊞** shows every goal (**⊟** goes back), **⊘** puts a question away,
   and **✓** in the header hides finished nodes, struck through while on. Each
   keeps its word as the text shown on hover and read by a screen reader.
 
@@ -42,7 +42,7 @@ versions follow [semantic versioning](https://semver.org/spec/v2.0.0.html).
 
 - With every goal of a session shown at once, the buttons and dots for turning
   between goals were still drawn, and the arrow keys still turned a page nobody
-  could see. Now only the lit **☰** stays, to go back to one at a time.
+  could see. Now only **⊟** stays, to go back to one at a time.
 
 - On a phone, a page pinched in before a graph was opened full screen put
   its **✕** and **tilpass** off screen, and the graph took every pinch for its

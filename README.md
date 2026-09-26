@@ -93,9 +93,9 @@ scroll rather than a ribbon twenty thousand pixels wide.
 The page fits a phone: one goal at a time, thumb-sized buttons, and the
 focused graph pinches to zoom. When a session has more than one independent
 goal, a pager shows one decomposition at a time — swipe left or right, tap a
-dot, or use the arrow keys on a keyboard; **☰** shows every goal at once
-again. Then there is nothing to turn, so only the lit **☰** stays above them,
-to go back to one at a time. The page you were on is remembered per session.
+dot, or use the arrow keys on a keyboard; **⊞** shows every goal at once
+again. Then there is nothing to turn, so only **⊟** stays above them, to go
+back to one at a time. The page you were on is remembered per session.
 
 A quick tap on a node lights its arrows and what they reach, and dims the
 rest, the way a resting mouse does; the highlight stays while the graph
