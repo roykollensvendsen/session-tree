@@ -100,6 +100,24 @@ changed, because the page is read from disk on every request. Then it fetches
 the page from every address the viewer listens on and says whether each one
 serves what `main` holds.
 
+## Demo sessions to look at a change against
+
+A change to the viewer is looked at against a set of made-up sessions, with
+everyday goals such as a birthday party or a street clean-up, so the graphs
+read without knowing any code. Between them they have every state a task can
+be drawn in, every label a session can carry, one goal and many, a single
+task and eighty, breakdowns folded and unfolded, questions of every kind,
+agents, and a link between sessions. `tests/test_demo_fixture.py` keeps that
+true. Serve them on a port of their own, beside your real viewer:
+
+<!-- not run: starts a server in the foreground -->
+```
+scripts/demo-viewer
+```
+
+It builds them fresh each time, and they age as real sessions do, so start it
+again for a clean set. `SESSION_TREE_HOST` puts it on your tailnet for a phone.
+
 ## Documents that restate a fact
 
 Point rather than copy. Where a document has to copy anyway, two test files
