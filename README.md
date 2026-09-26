@@ -211,6 +211,8 @@ the goal and the question. Tapping one scrolls to the session, opens the goal
 on its own and lights the node. The same place has an address of its own,
 `?s=<session id>&n=<node id>`, so a question can be linked to, and the list
 shows each session's working directory, so the terminal it runs in can be found.
+On a phone the list scrolls away with the page, so it does not cover the
+sessions below it, and a **? 3** in the header brings it back.
 
 A question can outlive its answer. When work moves to another session that
 carried on from a summary, the answer lands there, and the first session's node
