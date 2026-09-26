@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+# Serve the demo sessions on a port of their own, beside the real viewer.
+#
+# Builds a fresh fake home with scripts/demo_fixture.py and runs the server on
+# it in the foreground; Ctrl-C stops it. The demo ages like real sessions do,
+# so a session that is working now reads as stalled after fifteen minutes:
+# start it again for a fresh one. SESSION_TREE_HOST picks the address, as for
+# the real viewer, and SESSION_TREE_DEMO_PORT the port (8798).
+set -euo pipefail
+HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+home="$(python3 "$HERE/scripts/demo_fixture.py")"
+host="${SESSION_TREE_HOST:-127.0.0.1}"
+port="${SESSION_TREE_DEMO_PORT:-8798}"
+echo "demo sessions in $home"
+echo "open http://$host:$port/"
+exec env HOME="$home" PYTHONPATH="$HERE/src" SESSION_TREE_HOST="$host" SESSION_TREE_PORT="$port" \
+     python3 -m session_tree.server
