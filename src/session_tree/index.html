@@ -1246,7 +1246,8 @@ function drawFocus(){
     }
     FOCUS.anchor=null;
   }
-  if(!FOCUS.view) FOCUS.view=firstView(svg,goal,vb);
+  // it opens fitted, the whole graph on screen; the viewer pinches in from there
+  if(!FOCUS.view) FOCUS.view={...FOCUS.base};
   applyView();
   const live=goal.nodes.filter(n=>n.view!=='abandoned');
   document.getElementById('ftitle').textContent=`${goal.title} — ${live.filter(n=>n.view==='completed').length}/${live.length} ferdig · ${sess.project}`;
@@ -1254,26 +1255,6 @@ function drawFocus(){
     const lit=svg.querySelector(`.node[data-id="${CSS.escape(FOCUS.target)}"]`);
     if(lit) lit.classList.add('lit');
   }
-}
-/* Fitting a wide graph onto a phone shrinks its text past reading, which is
-   what the focus exists to avoid. So it opens fitted only when fitting keeps
-   the text near full size; otherwise at full size, from the top, centred on
-   the node being worked on (or the first one still open), and the viewer pans. */
-const READABLE_SCALE=0.8;
-function firstView(svg,goal,vb){
-  const body=fbox(), bw=body.clientWidth, bh=body.clientHeight;
-  if(bw/FOCUS.base.w>=READABLE_SCALE) return {...FOCUS.base};
-  const open=(FOCUS.target&&goal.nodes.find(n=>n.id===FOCUS.target))
-    ||goal.nodes.find(n=>['in_progress','blocked','stalled'].includes(n.view))
-    ||goal.nodes.find(n=>n.view!=='completed'&&n.view!=='abandoned')||goal.nodes[0];
-  const box=open&&svg.querySelector(`.node[data-id="${CSS.escape(open.id)}"] rect`);
-  // a box's header is read from its left, so a wide box is centred on its start
-  const cx=box?+box.getAttribute('x')+Math.min(+box.getAttribute('width'),SIZE.large.nodeW)/2:vb[0]+vb[2]/2;
-  const cy=box?+box.getAttribute('y'):vb[1];
-  const x=Math.max(vb[0]-20,Math.min(cx-bw/2,vb[0]+vb[2]+20-bw));
-  // the top of the graph when the node is on the first screen, else the node a third down
-  const y=cy+80<vb[1]+bh?vb[1]-20:Math.min(cy-bh/3,vb[1]+vb[3]+20-bh);
-  return {x:x,y:y,w:bw,h:bh};
 }
 /* A page pinched in before the graph opens shows only part of itself, and a
    fixed overlay is laid out over the whole page, so its ✕ could sit off screen

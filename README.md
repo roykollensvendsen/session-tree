@@ -78,9 +78,9 @@ the page was pinched in before it opened, so the ✕ and **⤢** (fit) stay on
 screen. The phone's back button or back gesture closes it too.
 
 There is room to spare, so the nodes are drawn larger than in the card, with up
-to three lines of each subject instead of one clipped line. When the whole
-graph would only fit by shrinking that text below reading size, it opens at
-full size around the node being worked on, and you pan to the rest.
+to three lines of each subject instead of one clipped line. It opens fitted,
+with the whole graph on screen; on a phone a big graph is then small, and you
+pinch in on the part you want.
 
 Steps that wait on the same things share a level, drawn side by side. When a
 level has more steps than fit at a readable width, it wraps onto more rows

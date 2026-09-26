@@ -66,3 +66,11 @@ def test_back_closes_the_enlarged_graph():
         "opening the graph leaves nothing for back to undo"
     )
     assert re.search(r"addEventListener\('popstate'[^\n]*closeFocus", PAGE), "back does not close the graph"
+
+
+def test_the_enlarged_graph_opens_fitted():
+    block = re.search(r"## One graph on its own\n(.*?)\n## ", README, re.DOTALL)
+    assert block, "README.md no longer has the section on the enlarged graph"
+    assert "It opens fitted" in block.group(1), "the README does not say the graph opens fitted"
+    draw = PAGE.split("function drawFocus(", 1)[1].split("\nfunction ", 1)[0]
+    assert "if(!FOCUS.view) FOCUS.view={...FOCUS.base}" in draw, "the graph does not open on its fitted view"
