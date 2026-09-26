@@ -83,6 +83,23 @@ cannot be tidied at the end by squashing it, which is why `committed.toml`
 refuses a fixup and a work-in-progress commit rather than trusting you to clean
 up later.
 
+## Seeing a merged change in your own viewer
+
+If you use this repository as your Claude Code skill, the viewer on your
+machine runs from that clone, `~/.claude/skills/session-tree`, and not from the
+one you work in. A merged change reaches it only when that clone is brought up
+to date, and forgetting to do so looks exactly like a fix that did not work:
+
+<!-- not run: restarts the viewer the reader is using -->
+```
+python3 scripts/deploy_local.py
+```
+
+It fast-forwards that clone to `main` and restarts the viewer only when Python
+changed, because the page is read from disk on every request. Then it fetches
+the page from every address the viewer listens on and says whether each one
+serves what `main` holds.
+
 ## Documents that restate a fact
 
 Point rather than copy. Where a document has to copy anyway, two test files
