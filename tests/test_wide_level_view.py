@@ -85,3 +85,22 @@ def test_a_wide_level_keeps_every_step_readable(size, width, nested):
         assert drawn["W"] <= width, f"the drawing is {drawn['W']} px wide in {width} px, so it is scaled down"
     else:
         assert drawn["W"] <= 6 * (250 + 18) + 40, f"the enlarged drawing is {drawn['W']} px wide"
+
+
+@pytest.mark.parametrize("nested", [False, True], ids=["flat", "with a breakdown open"])
+@pytest.mark.parametrize(("size", "width"), [("card", 340), ("large", 1400)])
+def test_in_a_wrapped_level_open_steps_come_before_finished_ones(size, width, nested):
+    goal = a_wide_goal(nested=nested)
+    for n in goal["nodes"][:30]:
+        n["view"] = "completed"
+    drawn = place(goal, width, size, nested=nested)["pos"]
+    level = [str(i) for i in range(77)]
+    done = [drawn[i]["y"] for i in level[:30]]
+    still_open = [drawn[i]["y"] for i in level[30:]]
+    assert max(still_open) <= min(done), "a finished step sits above one still open"
+
+
+def test_a_finished_step_is_drawn_quieter():
+    assert "finished step is drawn quieter" in README, "the README does not say finished steps are quieter"
+    draw = PAGE.split("const drawNode=", 1)[1].split("\n  };", 1)[0]
+    assert "stroke-opacity" in draw, "a finished step has the same outline as an open one"

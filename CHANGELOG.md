@@ -8,6 +8,10 @@ versions follow [semantic versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
+- In a level of a big graph that wraps onto rows, the steps still open now
+  come first and the finished ones last, and a finished step is drawn with a
+  quieter outline everywhere.
+
 - A session with a question for you now comes first on the page, and is no
   longer drawn dimmer when it has been quiet for a while; nor is one that
   stands still. Before, the session that needed you could be the greyest one.
