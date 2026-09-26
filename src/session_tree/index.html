@@ -1163,7 +1163,9 @@ function renderSession(s){
    at once. A tap on a dot goes straight to that goal. */
 function pagerBar(s,goals,page){
   const bar=document.createElement('div'); bar.className='pager';
-  const all=`<button class="all${pagerAll?' on':''}" title="alle målene på én gang" aria-label="alle målene på én gang">☰</button>`;
+  // expand to every goal, collapse back to one: the symbol says which way it goes
+  const all=`<button class="all${pagerAll?' on':''}" title="${pagerAll?'ett mål om gangen':'alle målene på én gang'}"
+    aria-label="${pagerAll?'ett mål om gangen':'alle målene på én gang'}">${pagerAll?'⊟':'⊞'}</button>`;
   const flip=()=>{ pagerAll=!pagerAll; remember('st.pagerAll',pagerAll?'1':'0'); refresh(); };
   // every goal is shown: nothing to turn, so only the way back is left
   if(pagerAll){ bar.innerHTML=`<span style="flex:1"></span>${all}`; bar.querySelector('.all').onclick=flip; return bar; }
