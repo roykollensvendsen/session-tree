@@ -129,7 +129,7 @@
   .evline .ghost{color:var(--faint);display:block;font-size:10.5px;margin-top:2px;
       overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .rbtn{background:none;border:1px solid var(--line);color:var(--dim);border-radius:5px;
-      padding:1px 7px;font-size:10px;cursor:pointer;white-space:nowrap}
+      padding:0 7px;font-size:14px;line-height:1.4;cursor:pointer;white-space:nowrap}
   .rbtn:hover{color:var(--ink);border-color:#3d4a5c}
   .rbtn.on{color:#d9c9f5;border-color:#9370db;background:rgba(147,112,219,.16)}
   .agent{font-size:9.5px;letter-spacing:.4px;text-transform:uppercase;padding:1.5px 6px;
@@ -206,6 +206,8 @@
     .shead{min-height:44px;gap:6px}
     .rp{flex-wrap:wrap}
     .rp button,.rbtn,.pager button,#focus button,.behind{min-height:40px;min-width:40px;padding:6px 12px;font-size:13px}
+    /* the stopwatch glyph draws small beside the others */
+    .rbtn{font-size:19px}
     .pager .dots i{width:14px;height:14px}
     /* the thumb-sized dots get a row of their own under the buttons */
     .pager{flex-wrap:wrap}
@@ -213,7 +215,10 @@
     #focus .fhint{display:none}
     #focus .fhead b{font-size:12px}
   }
-  header .hidedone{display:flex;align-items:center;gap:4px;font-size:12px;cursor:pointer;white-space:nowrap}
+  header .hidedone{background:var(--panel2);border:1px solid var(--line);color:var(--ink);border-radius:6px;
+      padding:2px 9px;font-size:13px;cursor:pointer}
+  /* on: finished nodes are hidden, so the tick is struck out */
+  header .hidedone.on{text-decoration:line-through;color:#d9c9f5;border-color:#9370db;background:rgba(147,112,219,.16)}
 </style>
 </head>
 <body>
@@ -221,7 +226,7 @@
   <h1>Session Tree</h1>
   <span class="live"><span class="dot" id="dot"></span><span id="conn">kobler til…</span></span>
   <span class="spacer"></span>
-  <label class="hidedone"><input type="checkbox" id="hidedone"> skjul ferdige</label>
+  <button class="hidedone" id="hidedone" title="skjul ferdige" aria-label="skjul ferdige" aria-pressed="false">✓</button>
   <span class="key">
     <span><i style="background:var(--active)"></i>jobber nå</span>
     <span><i style="background:var(--done)"></i>ferdig</span>
@@ -232,7 +237,7 @@
   </span>
 </header>
 <div id="asks"></div>
-<div id="focus"><div class="fhead"><b id="ftitle"></b><span class="fhint">hjul eller knip = zoom · dra = panorér · dobbeltklikk = tilpass · Esc = lukk</span><span style="flex:1"></span><button id="ffit">tilpass</button><button id="fclose">✕</button></div><div class="fbody" id="fbody"></div></div>
+<div id="focus"><div class="fhead"><b id="ftitle"></b><span class="fhint">hjul eller knip = zoom · dra = panorér · dobbeltklikk = tilpass · Esc = lukk</span><span style="flex:1"></span><button id="ffit" title="tilpass" aria-label="tilpass">⤢</button><button id="fclose" title="lukk" aria-label="lukk">✕</button></div><div class="fbody" id="fbody"></div></div>
 <main id="root"></main>
 <div class="tip" id="tip"></div>
 
@@ -928,8 +933,8 @@ function replayPanel(s,rp){
     <button title="neste hendelse">⏭</button>
     <input type="range" min="${a}" max="${b}" value="${rp.t}" step="1000">
     <span class="t">${clock(rp.t)}</span>
-    ${behind?`<button class="behind" title="hopp til nå">${behind} nye ↦</button>`:''}
-    <button title="tilbake til live">live ⏏</button>`;
+    ${behind?`<button class="behind" title="hopp til nå" aria-label="hopp til nå, ${behind} nye">↦ ${behind}</button>`:''}
+    <button title="tilbake til live" aria-label="tilbake til live">⏏</button>`;
   const kids=[...bar.children];
   const liveBtn=kids[kids.length-1];
   const behindBtn=bar.querySelector('.behind');
@@ -1054,7 +1059,7 @@ function renderSession(s){
     ${s.attention==='waiting'?'<span class="att waiting">venter på deg</span>':''}
     ${s.attention==='stalled'?'<span class="att stalled">står stille</span>':''}
     <span class="agent ${s.agent||'claude'}">${s.agent||'claude'}</span>
-    ${(s.events&&s.events.length>1)?`<button class="rbtn${rp?' on':''}">⏱ replay</button>`:''}`;
+    ${(s.events&&s.events.length>1)?`<button class="rbtn${rp?' on':''}" title="replay" aria-label="replay">⏱</button>`:''}`;
   const rbtn=head.querySelector('.rbtn');
   if(rbtn) rbtn.onclick=e=>{
     e.stopPropagation();
@@ -1160,7 +1165,7 @@ function pagerBar(s,goals,page){
   const bar=document.createElement('div'); bar.className='pager';
   bar.innerHTML=`<button title="forrige mål">‹</button><span class="dots"></span><span class="n">${page+1} / ${goals.length}</span>
     <button title="neste mål">›</button><span class="ptitle">${pagerAll?'':esc(goals[page].title)}</span>
-    <button class="all${pagerAll?' on':''}" title="alle målene på én gang">alle</button>`;
+    <button class="all${pagerAll?' on':''}" title="alle målene på én gang" aria-label="alle målene på én gang">☰</button>`;
   const [prev,,,next]=bar.children;
   prev.onclick=()=>turnPage(s.sessionId,-1,goals.length);
   next.onclick=()=>turnPage(s.sessionId,1,goals.length);
@@ -1199,8 +1204,9 @@ addEventListener('keydown',e=>{
 function refresh(){ if(LAST) render(LAST); }
 {
   const box=document.getElementById('hidedone');
-  box.checked=HIDE_DONE;
-  box.onchange=()=>{ HIDE_DONE=box.checked; remember('st.hideDone',HIDE_DONE?'1':'0'); hideTip(); refresh(); };
+  const show=()=>{ box.classList.toggle('on',HIDE_DONE); box.setAttribute('aria-pressed',String(HIDE_DONE)); };
+  show();
+  box.onclick=()=>{ HIDE_DONE=!HIDE_DONE; show(); remember('st.hideDone',HIDE_DONE?'1':'0'); hideTip(); refresh(); };
 }
 
 /* One graph on its own. The same renderGoal draws it, at the window's width,
@@ -1378,7 +1384,7 @@ function renderAsks(data){
     +items.map(({s,q},i)=>{
       const g=goalOf(s,q.node);
       return `<div class="qitem"><a href="${esc(askHref(s.sessionId,q.node))}" data-s="${esc(s.sessionId)}" data-n="${esc(q.node||'')}">
-        ${esc(q.text)}<span class="where">${esc(s.project)} · ${esc(s.name||s.firstPrompt||'(uten navn)').slice(0,60)}${g?' · '+esc(g.title):''}${q.node?' · #'+esc(q.node):''} — ${esc(s.cwd||'')}</span></a><button class="dismiss" data-i="${i}" title="Spørsmålet er besvart et annet sted; fjern det fra lista på alle enheter">avvis</button></div>`;
+        ${esc(q.text)}<span class="where">${esc(s.project)} · ${esc(s.name||s.firstPrompt||'(uten navn)').slice(0,60)}${g?' · '+esc(g.title):''}${q.node?' · #'+esc(q.node):''} — ${esc(s.cwd||'')}</span></a><button class="dismiss" data-i="${i}" title="avvis: spørsmålet er besvart et annet sted; fjern det fra lista på alle enheter" aria-label="avvis">⊘</button></div>`;
     }).join('')+'</details>':'';
   bar.querySelectorAll('a').forEach(a=>a.onclick=e=>{
     e.preventDefault(); goToQuestion(a.dataset.s,a.dataset.n||null);

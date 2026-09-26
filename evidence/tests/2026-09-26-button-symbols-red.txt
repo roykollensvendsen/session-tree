@@ -1,0 +1,9 @@
+# Red before the change: ae65c16, 2026-09-26T10:11:23Z
+FAILED tests/test_button_symbols_view.py::test_the_button_shows_its_symbol_and_keeps_its_word[tilpass]
+FAILED tests/test_button_symbols_view.py::test_the_button_shows_its_symbol_and_keeps_its_word[replay]
+FAILED tests/test_button_symbols_view.py::test_the_button_shows_its_symbol_and_keeps_its_word[tilbake til live]
+FAILED tests/test_button_symbols_view.py::test_the_button_shows_its_symbol_and_keeps_its_word[alle m\xe5lene p\xe5 \xe9n gang]
+FAILED tests/test_button_symbols_view.py::test_the_button_shows_its_symbol_and_keeps_its_word[avvis]
+FAILED tests/test_button_symbols_view.py::test_the_button_shows_its_symbol_and_keeps_its_word[skjul ferdige]
+FAILED tests/test_button_symbols_view.py::test_the_jump_to_now_button_leads_with_its_arrow
+7 failed in 0.04s

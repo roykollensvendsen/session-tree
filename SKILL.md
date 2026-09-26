@@ -142,7 +142,7 @@ forgetting to update a task, which is why it is there.
 
 ## Replay
 
-`⏱ replay` on a session header turns the graph into a recording of itself. The
+**⏱** (replay) on a session header turns the graph into a recording of itself. The
 slider is linear in time, so the gaps show where the thinking went; playback
 steps **event by event**, because a real-time replay of a forty-minute session
 takes forty minutes.
@@ -155,7 +155,7 @@ shows what was known then, not what is known now — including branches that had
 not been thought of yet.
 
 `?rp=<0..1>` opens replay at a fraction of the session's span, which is how to
-link someone to a moment. `live ⏏` returns to the stream; while replay is open
+link someone to a moment. **⏏** (live) returns to the stream; while replay is open
 that session stops following it, and the others keep updating.
 
 ## Subagents and attention
