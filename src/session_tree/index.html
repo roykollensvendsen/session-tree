@@ -80,7 +80,8 @@
   .node rect{transition:opacity .2s}
   .node text{pointer-events:none;font-size:10.5px;fill:var(--ink)}
   .node .id{font-size:9px;fill:var(--faint);font-weight:600}
-  .node{cursor:default}
+  /* a held finger is the node's, not the phone's: no callout, no text selection */
+  .node{cursor:default;-webkit-touch-callout:none;-webkit-user-select:none;user-select:none}
   .node.dim{opacity:.22}
   .edge{fill:none;stroke:#2f3947;stroke-width:1.3}
   .edge.lit{stroke:#7fb2ff;stroke-width:2}
@@ -102,7 +103,9 @@
      which leaves the node, closes it */
   .tip.on.touch{pointer-events:auto}
   .tip h4{margin:0 0 5px;font-size:12px}
-  .tip p{margin:5px 0;color:#b9c4d4;white-space:pre-wrap}
+  .tip .tipclose{float:right;margin:-4px -6px 4px 8px;min-width:36px;min-height:36px;background:var(--panel2);
+      border:1px solid var(--line);border-radius:6px;color:var(--ink);font-size:14px;cursor:pointer}
+  .tip p{margin:5px 0;color:#b9c4d4;white-space:pre-wrap;overflow-wrap:anywhere}
   .tip .row{color:var(--dim);font-size:10.5px;margin-top:5px;border-top:1px solid #222b36;padding-top:5px}
   .rp{display:flex;align-items:center;gap:8px;padding:7px 10px;margin:2px 0 9px;
       background:rgba(147,112,219,.09);border-left:2px solid #9370db;border-radius:0 5px 5px 0}
@@ -350,9 +353,75 @@ function placeTip(a,w,h,vp){
 let TOUCH=false;
 document.addEventListener('pointerdown',e=>{ TOUCH=e.pointerType!=='mouse'; },{capture:true,passive:true});
 document.addEventListener('pointermove',e=>{ if(e.pointerType==='mouse') TOUCH=false; },{capture:true,passive:true});
+
+/* A finger has no hover to show what a node is wired to, so a quick tap does
+   that job: it lights the node's arrows and dims the rest. Holding the finger
+   still opens the popover. A press that moves further than PRESS_SLOP_PX is a
+   scroll or a pan, and a second finger is a pinch; either cancels it. The
+   press is followed on the document, because the enlarged view captures the
+   pointer to pan and the node never sees it lift. */
+const LONG_PRESS_MS=500, PRESS_SLOP_PX=10;
+let PRESS=null, TAPPED=null, FINGERS=0, DOWN=null;
+function lightNode(svg,n){
+  svg.querySelectorAll('.node').forEach(o=>o.classList.toggle('dim',o.dataset.id!==n.id &&
+    !(n.blockedBy||[]).includes(o.dataset.id) && !(n.blocks||[]).includes(o.dataset.id)));
+  svg.querySelectorAll('.edge').forEach(o=>{
+    const lit=o.dataset.from===n.id||o.dataset.to===n.id;
+    o.classList.toggle('lit',lit); o.classList.toggle('dim',!lit);
+  });
+}
+function unlight(root){
+  root.querySelectorAll('.node.dim').forEach(o=>o.classList.remove('dim'));
+  root.querySelectorAll('.edge.lit,.edge.dim').forEach(o=>{o.classList.remove('lit');o.classList.remove('dim');});
+}
+/* A quick tap: light this node, or put it out if it was the one lit. The choice
+   is remembered, so the next redraw of a live session puts it back. */
+function tapNode(svg,n,key){
+  hideTip();
+  const same=TAPPED&&TAPPED.key===key&&TAPPED.id===n.id;
+  unlight(document);
+  TAPPED=same?null:{key:key,id:n.id};
+  if(!same) lightNode(svg,n);
+}
+function pressNode(e,svg,n,key,open){
+  if(FINGERS>1) return;
+  clearTimeout(PRESS&&PRESS.timer);
+  PRESS={id:e.pointerId,x:e.clientX,y:e.clientY,held:false,tap:()=>tapNode(svg,n,key)};
+  PRESS.timer=setTimeout(()=>{
+    if(!PRESS) return;
+    PRESS.held=true;
+    unlight(document); TAPPED={key:key,id:n.id}; lightNode(svg,n);
+    open(e);
+  },LONG_PRESS_MS);
+}
+const cancelPress=()=>{ if(PRESS) clearTimeout(PRESS.timer); PRESS=null; };
+document.addEventListener('pointerdown',e=>{
+  if(e.pointerType==='mouse') return;
+  FINGERS++; DOWN={x:e.clientX,y:e.clientY};
+  if(FINGERS>1) cancelPress();
+},{capture:true,passive:true});
+document.addEventListener('pointermove',e=>{
+  if(PRESS&&e.pointerId===PRESS.id&&Math.hypot(e.clientX-PRESS.x,e.clientY-PRESS.y)>PRESS_SLOP_PX) cancelPress();
+},{capture:true,passive:true});
+document.addEventListener('pointerup',e=>{
+  if(e.pointerType==='mouse') return;
+  FINGERS=Math.max(0,FINGERS-1);
+  if(PRESS&&e.pointerId===PRESS.id){ const p=PRESS; cancelPress(); if(!p.held) p.tap(); return; }
+  // a tap on empty space puts the highlight out; a drag across it does not
+  const still=DOWN&&Math.hypot(e.clientX-DOWN.x,e.clientY-DOWN.y)<=PRESS_SLOP_PX;
+  const t=document.elementFromPoint(e.clientX,e.clientY);
+  if(still&&TAPPED&&!(t&&t.closest('.node,#tip,button,a,input'))){ TAPPED=null; unlight(document); hideTip(); }
+},{capture:true,passive:true});
+document.addEventListener('pointercancel',e=>{
+  if(e.pointerType!=='mouse') FINGERS=Math.max(0,FINGERS-1);
+  if(PRESS&&e.pointerId===PRESS.id) cancelPress();
+},{capture:true,passive:true});
+
 function showTip(e,html,anchor){
   const vp=visibleArea();
-  tip.innerHTML=html; tip.scrollTop=0;
+  // a finger opened it and nothing will close it by leaving, so it gets a button
+  tip.innerHTML=(TOUCH?'<button class="tipclose" aria-label="lukk">✕</button>':'')+html; tip.scrollTop=0;
+  if(TOUCH) tip.querySelector('.tipclose').onclick=hideTip;
   tip.classList.toggle('touch',TOUCH); tip.classList.add('on');
   // measured at the top-left corner, so its old place cannot squeeze its width
   tip.style.left=vp.x+TIP_MARGIN+'px'; tip.style.top=vp.y+TIP_MARGIN+'px';
@@ -651,6 +720,7 @@ function allDone(width){
 }
 
 function renderGoal(goal,sess,width,size){
+  const key=sess.sessionId+'/'+goal.title;
   const hidden=hiddenBy(goal,sess);
   if(hidden.size) goal=liftEdges(goal,hidden);
   if(!goal.nodes.length) return allDone(width);
@@ -789,7 +859,7 @@ function renderGoal(goal,sess,width,size){
       g.appendChild(c);
     }
 
-    g.addEventListener('mousemove',e=>{
+    const details=()=>{
       const waiting=(n.waitingOn||[]).length?
         `<div class="row">venter på #${n.waitingOn.join(', #')}</div>`:'';
       const time=n.durationMs!=null?
@@ -799,22 +869,24 @@ function renderGoal(goal,sess,width,size){
         `<div class="row">rørte ${esc([...new Set(n.files)].slice(0,8).join(', '))}${n.files.length>8?' …':''}</div>`:'';
       const bad=(n.failures||[]).length?
         `<div class="row" style="color:#f0a8a8">${n.failures.length} kommando${n.failures.length>1?'er':''} feilet · ${esc(n.failures[0])}</div>`:'';
-      showTip(e,`<h4>#${n.id} · ${esc(n.subject)}</h4>
+      return `<h4>#${n.id} · ${esc(n.subject)}</h4>
         <div style="color:${COLOR[n.view]};font-size:11px;font-weight:600">${LABEL[n.view]||n.view}</div>
         ${asking?`<div class="ask">? ${esc(n.ask)}</div>`:n.askDismissed?`<div class="ask" style="opacity:.6">? ${esc(n.ask)} — avvist</div>`:''}${n.breakdown?`<div class="row">delmål: ${n.breakdown.done}/${n.breakdown.total} ferdig${n.breakdown.disagrees?' — noden er ferdig, men ikke alle delmålene':''}</div>`:''}${n.remote?`<div class="row">arbeid i en annen økt: ${esc(n.remote.title)} · ${n.remote.done}/${n.remote.total} ferdig</div>`:''}${n.description?`<p>${esc(n.description)}</p>`:''}${waiting}${time}${files}${bad}
-        <div class="row">${esc(sess.project)}${sess.branch?' · '+esc(sess.branch):''}</div>`,r);
-      svg.querySelectorAll('.node').forEach(o=>o.classList.toggle('dim',o.dataset.id!==n.id &&
-        !(n.blockedBy||[]).includes(o.dataset.id) && !(n.blocks||[]).includes(o.dataset.id)));
-      svg.querySelectorAll('.edge').forEach(o=>{
-        const lit=o.dataset.from===n.id||o.dataset.to===n.id;
-        o.classList.toggle('lit',lit); o.classList.toggle('dim',!lit);
-      });
+        <div class="row">${esc(sess.project)}${sess.branch?' · '+esc(sess.branch):''}</div>`;
+    };
+    // a finger's tap also arrives as a mouse move; the press handles a finger
+    g.addEventListener('mousemove',e=>{
+      if(TOUCH) return;
+      showTip(e,details(),r); lightNode(svg,n);
     });
     g.addEventListener('mouseleave',()=>{
-      hideTip();
-      svg.querySelectorAll('.node').forEach(o=>o.classList.remove('dim'));
-      svg.querySelectorAll('.edge').forEach(o=>{o.classList.remove('lit');o.classList.remove('dim');});
+      if(TOUCH) return;
+      hideTip(); unlight(svg);
     });
+    g.addEventListener('pointerdown',e=>{
+      if(e.pointerType!=='mouse') pressNode(e,svg,n,key,ev=>showTip(ev,details(),r));
+    });
+    g.addEventListener('contextmenu',e=>e.preventDefault());
     svg.appendChild(g);
   };
   // boxes first, outermost first, so the edges and steps inside them lie on top
@@ -823,6 +895,9 @@ function renderGoal(goal,sess,width,size){
   goal.nodes.filter(isBox).sort((x,y)=>nest(x.id)-nest(y.id)).forEach(drawNode);
   drawEdges();
   goal.nodes.filter(n=>!isBox(n)).forEach(drawNode);
+  // a live session redraws often; a node a finger lit stays lit
+  const tapped=TAPPED&&TAPPED.key===key&&goal.nodes.find(m=>m.id===TAPPED.id);
+  if(tapped) lightNode(svg,tapped);
   return svg;
 }
 

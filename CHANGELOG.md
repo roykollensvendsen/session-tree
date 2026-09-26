@@ -8,6 +8,10 @@ versions follow [semantic versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- On a phone, a quick tap on a node lights its arrows without covering the
+  graph, and holding a finger on it for half a second opens its details, which
+  now have a **✕** to close them. Before, every tap opened the details.
+
 - **avvis** beside a question in the list at the top puts away a question that
   was answered somewhere the session cannot see, such as a background job that
   carried the work on. The server keeps the dismissal, so it holds on every
