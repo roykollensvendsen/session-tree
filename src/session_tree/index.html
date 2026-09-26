@@ -1043,7 +1043,9 @@ function renderSession(s){
   // otherwise every finished Codex thread would hide its own content.
   const empty=!goals.length&&!(s.turns||[]).length&&!s.active;
   const shut=collapsed.has(s.sessionId)||(empty&&!opened.has(s.sessionId));
-  el.className='sess'+(s.active?'':' idle')+(shut?' closed':'')+(rp?' frozen':'');
+  // a quiet session is drawn dimmer, but never one that needs you
+  const needsYou=s.attention==='asking'||s.attention==='stalled';
+  el.className='sess'+(s.active||needsYou?'':' idle')+(shut?' closed':'')+(rp?' frozen':'');
   el.id='s-'+s.sessionId;
 
   const head=document.createElement('div');

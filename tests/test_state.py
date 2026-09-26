@@ -276,3 +276,14 @@ def test_a_session_with_a_question_asks_rather_than_waits() -> None:
     assert _attention("busy", quiet=5, alive=True, asking=True) == "asking"
     assert _attention("idle", quiet=5, alive=False, asking=True) == "ended"
     assert _attention("idle", quiet=5, alive=True) == "waiting"
+
+
+def test_a_session_with_a_question_comes_first():
+    from session_tree import state  # noqa: PLC0415 - one test needs the module's sort key
+
+    asking = {"attention": "asking", "active": False, "alive": True, "startedAt": 1}
+    working = {"attention": "working", "active": True, "alive": True, "startedAt": 2}
+    idle = {"attention": "waiting", "active": False, "alive": True, "startedAt": 3}
+    ended = {"attention": "ended", "active": False, "alive": False, "startedAt": 4}
+    ordered = sorted([ended, idle, working, asking], key=state.session_order)
+    assert ordered == [asking, working, idle, ended]

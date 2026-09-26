@@ -933,6 +933,20 @@ def _describe(
     }
 
 
+def session_order(session: dict[str, Any]) -> tuple[bool, bool, bool, float]:
+    """Where a session goes on the page.
+
+    One with a question for you first, then the active ones, then the rest by
+    age, newest first.
+    """
+    return (
+        session.get("attention") != "asking",
+        not session["active"],
+        not session["alive"],
+        -(session.get("startedAt") or 0),
+    )
+
+
 def build(now: float | None = None) -> dict[str, Any]:
     """Return the current picture of every session, whichever agent ran it.
 
@@ -970,5 +984,5 @@ def build(now: float | None = None) -> dict[str, Any]:
         sys.stderr.write(f"codex: {error!r}\n")
 
     _link_sessions(sessions)
-    sessions.sort(key=lambda s: (not s["active"], not s["alive"], -(s.get("startedAt") or 0)))
+    sessions.sort(key=session_order)
     return {"now": now, "sessions": sessions}
