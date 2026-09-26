@@ -1056,7 +1056,7 @@ function renderSession(s){
     <span class="spath">${esc(s.project)}${s.branch?' · '+esc(s.branch):''}</span>
     <span style="flex:1"></span>
     ${s.attention==='asking'?`<span class="att asking" title="${s.questions.length} spørsmål venter på svar">? ${s.questions.length}</span>`:''}
-    ${s.attention==='waiting'?'<span class="att waiting">venter på deg</span>':''}
+    ${s.attention==='waiting'?'<span class="att waiting">ledig</span>':''}
     ${s.attention==='stalled'?'<span class="att stalled">står stille</span>':''}
     <span class="agent ${s.agent||'claude'}">${s.agent||'claude'}</span>
     ${(s.events&&s.events.length>1)?`<button class="rbtn${rp?' on':''}" title="replay" aria-label="replay">⏱</button>`:''}`;

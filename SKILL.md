@@ -164,7 +164,7 @@ A node shows the subagents it spawned, running ones pulsing. Agents spawned
 before any task existed — a review panel usually is — belong to the session, not
 to a node, and say so.
 
-The session header carries what it needs from a person: `venter på deg` when the
+The session header carries what it needs from a person: `ledig` when the
 agent is idle and alive, `står stille` when it claims to be busy while nothing
 has been written for fifteen minutes, and `?` with the question when one is
 waiting: an open question box, an idle session whose last message has a

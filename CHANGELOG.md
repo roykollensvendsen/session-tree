@@ -8,6 +8,10 @@ versions follow [semantic versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
+- A session whose agent has finished its turn is labelled **ledig** instead of
+  **venter på deg**, which read as if it had asked something. A question still
+  has its own **?**.
+
 - A graph opened full screen now starts fitted, with the whole graph on
   screen. Before, a graph too big to fit at reading size opened at full size
   around the node being worked on, and you had to find your way from there.
