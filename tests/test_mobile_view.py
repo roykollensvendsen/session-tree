@@ -56,3 +56,15 @@ def test_many_goals_do_not_push_the_pager_buttons_off_a_phone():
     assert "min-width:0" in dots.group(1), "the dots cannot shrink, so next and alle go past the edge"
     phone = PAGE.split("@media (max-width:640px)", 1)[1].split("\n  }\n", 1)[0]
     assert ".pager{flex-wrap:wrap}" in phone, "on a phone the dots do not get a row of their own"
+
+
+def test_with_every_goal_shown_only_the_switch_back_is_left():
+    block = re.search(r"## On your phone\n(.*?)\n## ", README, re.DOTALL)
+    assert "only the lit **☰** stays" in block.group(1), (
+        "the README does not say what is left above every goal"
+    )
+    bar = PAGE.split("function pagerBar(", 1)[1].split("\nfunction ", 1)[0]
+    head = bar.split("bar.innerHTML=", 1)[0]
+    assert "if(pagerAll)" in head, "the pager draws its page controls even with every goal shown"
+    keys = PAGE.split("'ArrowLeft'&&e.key!=='ArrowRight'", 1)[1].split("});", 1)[0]
+    assert "pagerAll" in keys, "the arrow keys turn a page nobody can see"
