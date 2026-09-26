@@ -1,0 +1,25 @@
+#!/bin/sh
+# Run the gates CI runs, before the push rather than after it, so a change that
+# would fail there is stopped while it is still on this machine. The lines are
+# the ones CONTRIBUTING.md lists, and a test keeps the two the same.
+#
+# This is a convenience, not the gate: git's --no-verify skips it and
+# continuous integration is what actually blocks. It checks the working tree,
+# not the commits being pushed, so push from a clean tree.
+set -e
+cd "$(git rev-parse --show-toplevel)"
+
+if [ -n "$(git status --porcelain)" ]; then
+    echo "pre-push: the working tree has uncommitted changes; the gates check those too" >&2
+fi
+
+# set -e does not stop on a failure inside an && list, so this line says it.
+uv run ruff check . && uv run ruff format --check . || exit 1
+uv run mypy src
+uv run pytest -q --cov
+if command -v committed >/dev/null 2>&1; then
+    committed --no-merge-commit origin/main..HEAD
+else
+    echo "pre-push: committed is not installed; the commit convention is unchecked here" >&2
+fi
+python3 scripts/imperative.py origin/main..HEAD
