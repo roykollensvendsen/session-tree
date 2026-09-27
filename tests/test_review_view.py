@@ -71,3 +71,12 @@ def test_each_question_is_listed_once_with_the_session_and_goal_only():
     assert "s.cwd" not in where.group(1), "the list still spells out the working directory"
     assert "s.project" not in where.group(1), "the list still names the project beside the session"
     assert "title=" in function("renderAsks"), "the working directory is gone from hover as well"
+
+
+def test_the_now_line_and_the_dismiss_button_explain_themselves():
+    assert "`gjort ↑ · gjenstår ↓`" in README, "the README does not say what the dashed line means"
+    assert "'gjort ↑ · gjenstår ↓'" in function("renderGoal"), "the dashed line still says only 'nå'"
+    assert "**avvis?**" in README, "the README does not say a dismissal is confirmed"
+    asks = function("renderAsks")
+    assert "armed" in asks, "one tap on ⊘ still dismisses a question at once"
+    assert "avvis?" in asks, "the button does not ask before it dismisses"

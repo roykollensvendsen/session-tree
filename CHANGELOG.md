@@ -8,6 +8,9 @@ versions follow [semantic versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
+- The dashed line in a graph reads **gjort ↑ · gjenstår ↓**, and **⊘** asks
+  **avvis?** before it puts a question away.
+
 - Replay has one button back to now, **⏏ 23**, where there were two.
 
 - Each question is listed once, at the top, under it the session and the

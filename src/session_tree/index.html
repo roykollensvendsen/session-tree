@@ -788,7 +788,8 @@ function renderGoal(goal,sess,width,size){
     if(bi===nowBand){
       const t=document.createElementNS(NS,'text');
       t.setAttribute('x',1);t.setAttribute('y',y+11);t.setAttribute('class','bandlbl');
-      t.style.fill='#5e8fd0'; t.style.fontSize=size.idFont+'px'; t.textContent='nå';
+      // the line alone said nothing; it divides what is done from what is left
+      t.style.fill='#5e8fd0'; t.style.fontSize=size.idFont+'px'; t.textContent='gjort ↑ · gjenstår ↓';
       svg.appendChild(t);
     }
   });
@@ -1414,7 +1415,13 @@ function renderAsks(data){
   bar.querySelectorAll('a').forEach(a=>a.onclick=e=>{
     e.preventDefault(); goToQuestion(a.dataset.s,a.dataset.n||null);
   });
-  bar.querySelectorAll('button.dismiss').forEach(b=>b.onclick=()=>dismiss(ASKED[+b.dataset.i],b));
+  // ⊘ says nothing without hover, and a slip would throw a question away: the
+  // first tap asks, the second dismisses, and it forgets after a few seconds
+  bar.querySelectorAll('button.dismiss').forEach(b=>b.onclick=()=>{
+    if(b.dataset.armed){ dismiss(ASKED[+b.dataset.i],b); return; }
+    b.dataset.armed='1'; b.textContent='avvis?';
+    setTimeout(()=>{ if(b.isConnected&&!b.disabled){ delete b.dataset.armed; b.textContent='⊘'; } },4000);
+  });
   // on a phone the list scrolls away; the count in the header brings it back open
   const count=document.getElementById('askcount');
   count.hidden=!items.length; count.textContent=`? ${items.length}`;
