@@ -8,6 +8,8 @@ versions follow [semantic versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
+- Replay has one button back to now, **⏏ 23**, where there were two.
+
 - Each question is listed once, at the top, under it the session and the
   goal; the working directory shows on hover.
 
@@ -40,7 +42,7 @@ versions follow [semantic versioning](https://semver.org/spec/v2.0.0.html).
 
 - Buttons show a symbol instead of a word, which leaves more room on a phone:
   **⤢** fits the enlarged graph, **⏱** opens replay, **⏏** returns to live,
-  **↦ 12** jumps to now, **⊞** shows every goal (**⊟** goes back), **⊘** puts a question away,
+  **⊞** shows every goal (**⊟** goes back), **⊘** puts a question away,
   and **✓** in the header hides finished nodes, struck through while on. Each
   keeps its word as the text shown on hover and read by a screen reader.
 
