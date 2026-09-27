@@ -1097,7 +1097,7 @@ function renderSession(s){
     ${s.attention==='asking'?`<span class="att asking" title="${s.questions.length} spørsmål venter på svar">? ${s.questions.length}</span>`:''}
     ${s.attention==='waiting'?'<span class="att waiting">ledig</span>':''}
     ${s.attention==='stalled'?'<span class="att stalled">står stille</span>':''}
-    <span class="agent ${s.agent||'claude'}">${s.agent||'claude'}</span>
+    ${MIXED?`<span class="agent ${s.agent||'claude'}">${s.agent||'claude'}</span>`:''}
     ${(s.events&&s.events.length>1)?`<button class="rbtn${rp?' on':''}" title="replay" aria-label="replay">⏱</button>`:''}`;
   const rbtn=head.querySelector('.rbtn');
   if(rbtn) rbtn.onclick=e=>{
@@ -1484,9 +1484,13 @@ function ageRunning(data){
   }
 }
 
+/* Whether the page holds sessions from more than one agent: only then does
+   the badge on each session tell them apart rather than repeat itself. */
+let MIXED=false;
 function render(data){
   ageRunning(data);
   LAST=data;
+  MIXED=new Set((data.sessions||[]).map(s=>s.agent||'claude')).size>1;
   renderAsks(data);
   // ?rp=<0..1> opens replay on the first active session at that point of its
   // span -- for screenshots, and for linking someone to a moment.

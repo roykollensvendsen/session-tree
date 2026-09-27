@@ -49,7 +49,8 @@ byte offset per file and never re-reads one.
 
 Codex threads are read from `~/.codex/state_*.sqlite` and
 `~/.codex/thread_history_*.sqlite`, and appear beside the Claude Code ones with
-a `codex` badge. Codex keeps no task list, so those sessions show a band of
+a `codex` badge; the badges show only when both kinds of session are on the
+page, since on their own they say nothing. Codex keeps no task list, so those sessions show a band of
 turns along time instead of a graph: status, duration, the files each turn
 changed, and any command that exited non-zero. That absence is stated on the
 card, so an empty graph area reads as a property of the source rather than as
