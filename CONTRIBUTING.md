@@ -11,6 +11,7 @@ reporting.
 git clone https://github.com/roykollensvendsen/session-tree
 cd session-tree
 uv sync --all-extras
+uv run playwright install chromium
 ```
 
 The commit linter is a separate binary,
@@ -99,6 +100,18 @@ It fast-forwards that clone to `main` and restarts the viewer only when Python
 changed, because the page is read from disk on every request. Then it fetches
 the page from every address the viewer listens on and says whether each one
 serves what `main` holds.
+
+## Tests in a real browser
+
+Tests marked `browser` open the demo sessions in Chromium through Playwright, at
+a phone's width and a wide screen's, and look at what the page does rather than
+at its source ([ADR-ST-007](decisions/ADR-ST-007-the-viewer-is-tested-in-a-browser.md)).
+Without a browser they skip on your machine; in CI a missing browser fails.
+
+One of them runs axe-core, an accessibility rules engine, on the page. What it
+flagged when it was added is in `tests/accessibility_baseline.json`, as the
+number of elements per rule. Anything new, or more of the same, fails. When you
+fix some, lower the number, so the baseline only ever shrinks.
 
 ## Demo sessions to look at a change against
 
