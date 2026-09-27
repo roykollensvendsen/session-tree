@@ -115,7 +115,8 @@ goal, a pager shows one decomposition at a time — swipe left or right, tap a
 dot, or use the arrow keys on a keyboard; **⊞** shows every goal at once
 again. Then there is nothing to turn, so only **⊟** stays above them, to go
 back to one at a time. The page you were on is remembered per session.
-On a phone the colour key is folded away; **ⓘ** in the header shows it.
+The key in the header explains the colours, the marks and the chips; on a
+phone it is folded away, and **ⓘ** in the header shows it.
 
 A quick tap on a node lights its arrows and what they reach, and dims the
 rest, the way a resting mouse does; the highlight stays while the graph

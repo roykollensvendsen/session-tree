@@ -106,3 +106,9 @@ def test_nothing_at_work_is_said_only_where_work_is_expected():
     assert re.search(r"quietNow=[^\n]*attention!=='working'", session), (
         "the empty line is not tied to a working session"
     )
+
+
+def test_the_key_explains_the_chips():
+    key = PAGE.split('<span class="key">', 1)[1].split("</span>\n</header>", 1)[0]
+    for chip in ("▸", "▾", "↗", "↖"):
+        assert chip in key, f"the key does not explain {chip}"

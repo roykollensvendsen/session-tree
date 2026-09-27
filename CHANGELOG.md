@@ -8,6 +8,8 @@ versions follow [semantic versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
+- The key in the header explains the chips ▸ ▾ ↗ ↖ too.
+
 - An idle or ended session no longer says «ingen node under arbeid»; its
   label already says so.
 
