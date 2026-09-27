@@ -8,6 +8,8 @@ versions follow [semantic versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
+- Text in the cards is 12 px, numbers and labels 11 px; it was 9 to 10.5 px.
+
 - A lit task shows a solid arrow to what it waits on and a dashed one to what
   waits on it.
 
