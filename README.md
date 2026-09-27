@@ -119,7 +119,7 @@ The key in the header explains the colours, the marks and the chips; on a
 phone it is folded away, and **ⓘ** in the header shows it.
 
 A quick tap on a node lights its arrows and what they reach, and dims the
-rest, the way a resting mouse does; the highlight stays while the graph
+rest: a solid arrow to what it waits on, a dashed one to what waits on it, the way a resting mouse does; the highlight stays while the graph
 redraws. A tap on the same node again, or on empty space, puts it out. Hold a
 finger on a node for half a second to open its popover, which has a ✕ to close
 it. A press that turns into a scroll or a pinch does neither. The popover is

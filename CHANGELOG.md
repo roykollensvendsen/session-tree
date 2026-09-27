@@ -8,6 +8,9 @@ versions follow [semantic versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
+- A lit task shows a solid arrow to what it waits on and a dashed one to what
+  waits on it.
+
 - The key in the header explains the chips ▸ ▾ ↗ ↖ too.
 
 - An idle or ended session no longer says «ingen node under arbeid»; its
