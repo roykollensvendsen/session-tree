@@ -220,8 +220,9 @@ looks the same as one that asked you something. A question gets its own mark,
   `metadata: {"ask": "<the question>"}` on the node it is waiting for. Setting
   `ask` to `null` clears it. The question shows in the node's popover.
 
-A session with a question for you comes first on the page, and is never drawn
-dimmer the way a quiet session is; nor is one that stands still.
+A session with a question for you comes first on the page, then one that
+stands still, and a session that needs you is never drawn
+dimmer the way a quiet session is.
 
 With several sessions open, a line at the top of the page counts the questions
 waiting — `? 2 venter på svar` — and lists each one once: the question, and

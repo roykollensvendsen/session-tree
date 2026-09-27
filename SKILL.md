@@ -187,7 +187,8 @@ updates underneath it. A live session redraws the graph every time its
 transcript grows, and a resting pointer must not have to move to get its node
 back.
 
-Sessions with a question for you come first, then the active ones. A quiet
+Sessions with a question for you come first, then those that stand still,
+then the active ones. A quiet
 session is drawn dimmer, but never one that asks you something or stands still.
 Clicking a header collapses it, and the choice is remembered.
 

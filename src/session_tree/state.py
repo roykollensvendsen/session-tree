@@ -933,14 +933,15 @@ def _describe(
     }
 
 
-def session_order(session: dict[str, Any]) -> tuple[bool, bool, bool, float]:
+def session_order(session: dict[str, Any]) -> tuple[bool, bool, bool, bool, float]:
     """Where a session goes on the page.
 
-    One with a question for you first, then the active ones, then the rest by
-    age, newest first.
+    One with a question for you first, then one that stands still (both need
+    you), then the active ones, then the rest by age, newest first.
     """
     return (
         session.get("attention") != "asking",
+        session.get("attention") != "stalled",
         not session["active"],
         not session["alive"],
         -(session.get("startedAt") or 0),
