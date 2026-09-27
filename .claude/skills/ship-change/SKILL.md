@@ -47,10 +47,11 @@ A branch, never `main`. Then the order `CONTRIBUTING.md` gives under "How a
 change is made": decide, say it, a test seen red with the run recorded under
 `evidence/tests/`, the smallest code that turns it green.
 
-For anything the user sees, look at it. The page is inline JavaScript and CSS
-that no test lays out, so a test that reads the stylesheet proves the rule is
-there, not that it works. Render it in headless Chromium at the size that
-matters (a phone is 360 px wide) and look at the screenshot.
+For anything the user sees, test it in the browser and look at it. A test
+that reads the page's source proves a rule is written, not that it works; the
+browser tests (marked `browser`, ADR-ST-007) drive the demo in Chromium at a
+phone's width and a wide screen's. Then look at the screenshots, and for a
+change to how the page looks or reads, run the `design-review` skill.
 
 ## 3. Push only what would pass
 
