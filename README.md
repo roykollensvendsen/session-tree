@@ -202,7 +202,7 @@ not mistaken for that warning.
 looks the same as one that asked you something. A question gets its own mark,
 **`?`**, wherever it is waiting:
 
-- **On the session**, with the question itself, when the agent has an open
+- **On the session**, as **? 1** in its header, when the agent has an open
   question box (`AskUserQuestion` with no answer yet), or when it has gone idle
   after writing a line that starts with `needs input:`.
 - **On a node, and on its goal's header**, when the agent set
@@ -213,11 +213,12 @@ A session with a question for you comes first on the page, and is never drawn
 dimmer the way a quiet session is; nor is one that stands still.
 
 With several sessions open, a line at the top of the page counts the questions
-waiting — `? 2 venter på svar` — and lists each one: the project, the session,
-the goal and the question. Tapping one scrolls to the session, opens the goal
+waiting — `? 2 venter på svar` — and lists each one once: the question, and
+under it the session and the goal. Tapping one scrolls to the session, opens the goal
 on its own and lights the node. The same place has an address of its own,
-`?s=<session id>&n=<node id>`, so a question can be linked to, and the list
-shows each session's working directory, so the terminal it runs in can be found.
+`?s=<session id>&n=<node id>`, so a question can be linked to, and holding the
+pointer over one shows the session's working directory, so the terminal it runs
+in can be found.
 On a phone the list scrolls away with the page, so it does not cover the
 sessions below it, and a **? 3** in the header brings it back.
 

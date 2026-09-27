@@ -61,3 +61,13 @@ def test_the_task_being_worked_on_keeps_its_text_while_it_pulses():
     assert "the text stays readable" in SKILL, "SKILL.md does not say what pulses"
     assert ".node.pulsing{animation:none}" in PAGE, "the whole task still fades in and out"
     assert re.search(r"\.node\.pulsing>rect\{animation:", PAGE), "the task's outline does not pulse"
+
+
+def test_each_question_is_listed_once_with_the_session_and_goal_only():
+    assert "lists each one once" in README, "the README does not say a question is listed once"
+    assert "'qrow'" not in function("renderSession"), "each session still repeats its questions"
+    where = re.search(r'<span class="where">(.*?)</span>', function("renderAsks"))
+    assert where, "the list says nothing about where a question waits"
+    assert "s.cwd" not in where.group(1), "the list still spells out the working directory"
+    assert "s.project" not in where.group(1), "the list still names the project beside the session"
+    assert "title=" in function("renderAsks"), "the working directory is gone from hover as well"

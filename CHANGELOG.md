@@ -8,6 +8,9 @@ versions follow [semantic versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
+- Each question is listed once, at the top, under it the session and the
+  goal; the working directory shows on hover.
+
 - How long a session has been quiet reads **40 min siden**, not **stille 40
   min**, so it is not mistaken for the **står stille** warning.
 
