@@ -99,6 +99,18 @@ jobs:
         # Coverage is measured and printed, with no threshold yet: a number
         # picked before there is data is a guess with a gate on it.
         run: uv run pytest -q -p no:cacheprovider --strict-markers --cov
+      # Pictures for a design review: the demo at a phone's width and a wide
+      # screen's, as each colour-vision simulation sees it. Nothing asserts on
+      # them; a person looks (.claude/skills/design-review). One job is enough.
+      - name: Pictures for a design review
+        if: matrix.python == '3.13'
+        run: uv run python scripts/review_shots.py review-shots
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        if: matrix.python == '3.13'
+        with:
+          name: review-shots
+          path: review-shots/
+          retention-days: 14
       - name: Every rule is killed by the test that names it
         # Not a formality: the suite is run once per rule with that rule
         # switched off, and a rule whose own test survives fails the job.
