@@ -88,6 +88,10 @@ pinch in on the part you want.
 In every graph a dashed line reads `gjort ↑ · gjenstår ↓`: the levels above it
 are done, the rest is still to do.
 
+Everything works from a keyboard too. Tab reaches every task, chip and control,
+with a yellow ring on the one in focus; Enter lights a task's arrows and opens
+its details, and Esc closes them.
+
 Steps that wait on the same things share a level, drawn side by side. When a
 level has more steps than fit at a readable width, it wraps onto more rows
 instead of squeezing them: in a card, as many per row as the card has room for;
