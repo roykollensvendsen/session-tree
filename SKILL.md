@@ -133,7 +133,8 @@ longer than a step or two, and keep it true for as long as the work lasts:
 
 ## What the colours mean
 
-`blue, pulsing` worked on now · `green` done · `grey` waiting its turn ·
+`blue, pulsing` worked on now · `green` done · `grey` ready to start ·
+`grey with ⏳` waiting on another task that is still open ·
 `red` blocked by an open dependency · `amber` in_progress but the transcript has
 been silent 15 minutes · `struck through` abandoned.
 
