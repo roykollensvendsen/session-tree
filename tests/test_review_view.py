@@ -55,3 +55,9 @@ def test_quiet_time_does_not_read_like_the_stand_still_warning():
     head = function("renderSession")
     assert "stille ${ago(" not in head, "quiet time still reads 'stille', like the warning"
     assert "${ago(s.quietSeconds)} siden" in head, "quiet time does not read as time since"
+
+
+def test_the_task_being_worked_on_keeps_its_text_while_it_pulses():
+    assert "the text stays readable" in SKILL, "SKILL.md does not say what pulses"
+    assert ".node.pulsing{animation:none}" in PAGE, "the whole task still fades in and out"
+    assert re.search(r"\.node\.pulsing>rect\{animation:", PAGE), "the task's outline does not pulse"
