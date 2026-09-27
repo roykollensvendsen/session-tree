@@ -7,7 +7,7 @@
 <style>
   :root{
     --bg:#0e1116; --panel:#151a22; --panel2:#1b212b; --line:#252d3a;
-    --ink:#e6edf6; --dim:#8b97a8; --faint:#5b6678;
+    --ink:#e6edf6; --dim:#8b97a8; --faint:#8490a2;
     --pending:#6b7a90; --active:#3b82f6; --done:#22c55e;
     --stall:#eab308; --block:#ef4444; --gone:#6b7a90;
   }
@@ -43,7 +43,9 @@
   }
 
   .sess{background:var(--panel);border:1px solid var(--line);border-radius:10px;margin-bottom:12px;overflow:hidden}
-  .sess.idle{opacity:.58}
+  /* a quiet session steps back by losing its colour, not its contrast: fading it
+     made its text too faint to read (WCAG 1.4.3) */
+  .sess.idle{filter:saturate(.35)}
   .sess.idle .shead{background:transparent}
   .shead{display:flex;align-items:center;gap:9px;padding:9px 13px;cursor:pointer;
          background:linear-gradient(90deg,rgba(59,130,246,.09),transparent)}
@@ -72,7 +74,7 @@
   .goal{background:var(--panel2);border:1px solid var(--line);border-radius:8px;
         padding:9px 10px 6px;flex:1 1 330px;min-width:300px}
   .gtitle{font-size:11.5px;font-weight:600;color:#cbd6e6;margin-bottom:2px;
-          white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:zoom-in}
+          white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:zoom-in;min-height:24px;line-height:24px}
   .gtitle:hover{color:#ffffff;text-decoration:underline dotted}
   /* one graph on its own: the card's graph, filling the window, zoomable */
   #focus{position:fixed;inset:0;background:var(--bg);z-index:50;display:none;flex-direction:column}
@@ -206,9 +208,10 @@
   .pager button:hover{border-color:#3d4a5c}
   .pager button.on{color:#d9c9f5;border-color:#9370db;background:rgba(147,112,219,.16)}
   /* many goals: the dots wrap rather than push next and alle off the edge */
-  .pager .dots{display:flex;flex-wrap:wrap;gap:5px;align-items:center;min-width:0}
-  .pager .dots i{width:8px;height:8px;border-radius:50%;background:var(--pending);cursor:pointer;display:block}
-  .pager .dots i.on{background:#9370db}
+  .pager .dots{display:flex;flex-wrap:wrap;gap:0;align-items:center;min-width:0}
+  /* the dot is small, the place to tap it is 24 px (WCAG 2.5.8): padding outside the painted dot */
+  .pager .dots i{width:24px;height:24px;padding:8px;background-clip:content-box;border-radius:50%;background-color:var(--pending);cursor:pointer;display:block}
+  .pager .dots i.on{background-color:#9370db}
   .pager .n{font-variant-numeric:tabular-nums;min-width:36px;text-align:center}
   .pager .ptitle{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#cbd6e6;font-weight:600}
   .goals.paged{touch-action:pan-y}
@@ -228,7 +231,7 @@
     .rp button,.rbtn,.pager button,#focus button,.behind{min-height:40px;min-width:40px;padding:6px 12px;font-size:13px}
     /* the stopwatch glyph draws small beside the others */
     .rbtn{font-size:19px}
-    .pager .dots i{width:14px;height:14px}
+    .pager .dots i{width:24px;height:24px;padding:5px}
     /* the thumb-sized dots get a row of their own under the buttons */
     .pager{flex-wrap:wrap}
     .pager .dots{order:1;flex:1 1 100%}
@@ -267,7 +270,7 @@
     <span><i style="background:var(--gone)"></i>forkastet</span>
   </span>
 </header>
-<div id="asks"></div>
+<aside id="asks" aria-label="spørsmål til deg"></aside>
 <div id="focus"><div class="fhead"><b id="ftitle"></b><span class="fhint">hjul eller knip = zoom · dra = panorér · dobbeltklikk = tilpass · Esc = lukk</span><span style="flex:1"></span><button id="ffit" title="tilpass" aria-label="tilpass">⤢</button><button id="fclose" title="lukk" aria-label="lukk">✕</button></div><div class="fbody" id="fbody"></div></div>
 <main id="root"></main>
 <div class="tip" id="tip"></div>

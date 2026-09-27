@@ -108,10 +108,12 @@ a phone's width and a wide screen's, and look at what the page does rather than
 at its source ([ADR-ST-007](decisions/ADR-ST-007-the-viewer-is-tested-in-a-browser.md)).
 Without a browser they skip on your machine; in CI a missing browser fails.
 
-One of them runs axe-core, an accessibility rules engine, on the page. What it
-flagged when it was added is in `tests/accessibility_baseline.json`, as the
-number of elements per rule. Anything new, or more of the same, fails. When you
-fix some, lower the number, so the baseline only ever shrinks.
+One of them runs axe-core, an accessibility rules engine, on the page, with the
+WCAG 2.2 AA rules and axe's best practices. It fails on any violation. What
+axe cannot decide, mostly text inside the graphs, is counted instead: the count
+in `tests/accessibility_baseline.json` is a ceiling, so a jump shows. The
+graph's colours and text are checked by `tests/test_palette.py`, without a
+browser.
 
 ## Demo sessions to look at a change against
 

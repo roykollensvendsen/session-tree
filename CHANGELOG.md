@@ -80,6 +80,9 @@ versions follow [semantic versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- Faint text, faded quiet sessions, the ledig badge and the pager's dots were
+  below WCAG 2.2 contrast or tap-size limits; they meet them now.
+
 - With reduced motion turned on, the live dot and the stand-still badge still
   moved. Nothing moves now.
 

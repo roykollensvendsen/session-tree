@@ -1,4 +1,4 @@
 {
-  "phone": {"color-contrast": 18, "region": 3},
-  "wide": {"color-contrast": 20, "region": 3}
+  "phone": {"violations": {}, "incomplete": 278},
+  "wide": {"violations": {}, "incomplete": 282}
 }
