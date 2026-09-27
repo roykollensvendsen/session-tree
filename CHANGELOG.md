@@ -8,6 +8,9 @@ versions follow [semantic versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
+- The agent badge shows only when sessions from different agents are on
+  the page.
+
 - The dashed line in a graph reads **gjort ↑ · gjenstår ↓**, and **⊘** asks
   **avvis?** before it puts a question away.
 

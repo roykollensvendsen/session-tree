@@ -80,3 +80,11 @@ def test_the_now_line_and_the_dismiss_button_explain_themselves():
     asks = function("renderAsks")
     assert "armed" in asks, "one tap on ⊘ still dismisses a question at once"
     assert "avvis?" in asks, "the button does not ask before it dismisses"
+
+
+def test_the_agent_badge_shows_only_when_the_agents_differ():
+    assert "the badges show only when both kinds" in SKILL, "SKILL.md does not say when the badge shows"
+    assert re.search(r"MIXED=new Set\(", function("render")), "nothing works out whether the agents differ"
+    assert re.search(r"\$\{MIXED\?`<span class=\"agent", function("renderSession")), (
+        "the badge shows regardless"
+    )
