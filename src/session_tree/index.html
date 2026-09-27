@@ -1195,9 +1195,10 @@ function renderSession(s){
   if(running){ now.className='now';
     now.innerHTML=`▶ <b>#${running.id}</b> ${esc(running.subject)}${running.durationMs!=null?` <span style="color:var(--faint)">· ${dur(running.durationMs)}</span>`:''}`; }
   else if(blocked){ now.className='now stall';
-    now.innerHTML=`⏸ <b>#${blocked.id}</b> ${esc(blocked.subject)} — blokkert av #${(blocked.waitingOn||[]).join(', #')}`; }
+    // the same glyph the task carries in the graph, from the STATE table
+    now.innerHTML=`${STATE.blocked.cue} <b>#${blocked.id}</b> ${esc(blocked.subject)} — blokkert av #${(blocked.waitingOn||[]).join(', #')}`; }
   else if(stalled){ now.className='now stall';
-    now.innerHTML=`⚠ <b>#${stalled.id}</b> ${esc(stalled.subject)} — ingen aktivitet på ${ago(s.quietSeconds)}`; }
+    now.innerHTML=`${STATE.stalled.cue} <b>#${stalled.id}</b> ${esc(stalled.subject)} — ingen aktivitet på ${ago(s.quietSeconds)}`; }
   else if((s.turns||[]).length){
     const run=(s.turns||[]).find(t=>t.status==='in_progress');
     const fail=(s.turns||[]).filter(t=>t.status==='failed').length;
