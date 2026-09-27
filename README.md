@@ -85,6 +85,9 @@ to three lines of each subject instead of one clipped line. It opens fitted,
 with the whole graph on screen; on a phone a big graph is then small, and you
 pinch in on the part you want.
 
+In every graph a dashed line reads `gjort ↑ · gjenstår ↓`: the levels above it
+are done, the rest is still to do.
+
 Steps that wait on the same things share a level, drawn side by side. When a
 level has more steps than fit at a readable width, it wraps onto more rows
 instead of squeezing them: in a card, as many per row as the card has room for;
@@ -224,7 +227,8 @@ sessions below it, and a **? 3** in the header brings it back.
 
 A question can outlive its answer. When work moves to another session that
 carried on from a summary, the answer lands there, and the first session's node
-keeps asking. **⊘** (avvis) beside a question in the list puts it away: the server
+keeps asking. **⊘** (avvis) beside a question in the list, and then **avvis?** to
+confirm, puts it away: the server
 keeps the dismissal in `~/.claude/session-tree/dismissed.json`, so it is gone
 on every device, and the session is no longer marked as asking on its account.
 The node's popover still shows the question, marked `avvist`. A dismissal is of
