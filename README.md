@@ -99,6 +99,12 @@ pulses or moves.
 A screen reader hears each graph as a group named after its goal, and each task
 as a button that says its subject and its state in words.
 
+**▤** beside a goal's title shows its tasks as a list instead of a graph: a
+table with each task's state in a mark and a word, its number and subject, what
+it waits on and how long it has taken, with what needs you first. It is the same
+information without the drawing, for a big goal on a phone or a screen reader.
+The choice is remembered per goal.
+
 Steps that wait on the same things share a level, drawn side by side. When a
 level has more steps than fit at a readable width, it wraps onto more rows
 instead of squeezing them: in a card, as many per row as the card has room for;

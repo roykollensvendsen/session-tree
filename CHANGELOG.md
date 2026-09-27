@@ -82,6 +82,9 @@ versions follow [semantic versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- **▤** beside a goal's title shows its tasks as a list, with what needs you
+  first.
+
 - On a phone, a quick tap on a node lights its arrows without covering the
   graph, and holding a finger on it for half a second opens its details, which
   now have a **✕** to close them. Before, every tap opened the details.

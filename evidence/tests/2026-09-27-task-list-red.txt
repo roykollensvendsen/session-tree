@@ -1,0 +1,4 @@
+# Red before the change: 0207faf plus the other findings and the README section, 2026-09-27T15:37:50Z
+FAILED tests/test_browser_task_list.py::test_a_goal_turns_into_a_table_of_its_tasks_and_back[phone]
+FAILED tests/test_browser_task_list.py::test_a_goal_turns_into_a_table_of_its_tasks_and_back[wide]
+2 failed in 62.18s (0:01:02)
