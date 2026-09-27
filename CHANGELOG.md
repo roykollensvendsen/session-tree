@@ -8,6 +8,8 @@ versions follow [semantic versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
+- On a phone, **ⓘ** in the header opens the colour key, which was hidden.
+
 - A task waiting on another now carries **⏳**, and one that can start is
   called **klar**; before, the two looked the same.
 
