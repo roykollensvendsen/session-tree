@@ -1,0 +1,3 @@
+# Red before the change: 77959bc plus findings 4-6 and the README line, 2026-09-26T22:56:55Z
+FAILED tests/test_review_view.py::test_quiet_time_does_not_read_like_the_stand_still_warning
+1 failed, 3 passed in 0.03s

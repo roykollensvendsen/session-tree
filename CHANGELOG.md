@@ -8,6 +8,9 @@ versions follow [semantic versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
+- How long a session has been quiet reads **40 min siden**, not **stille 40
+  min**, so it is not mistaken for the **står stille** warning.
+
 - A wide screen shows sessions two side by side; a session with a big graph
   takes the whole width.
 

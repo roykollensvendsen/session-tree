@@ -48,3 +48,10 @@ def test_a_wide_screen_shows_sessions_side_by_side():
         "a session with a big graph does not take the width"
     )
     assert "' wide'" in function("renderSession"), "no session is marked as having a big graph"
+
+
+def test_quiet_time_does_not_read_like_the_stand_still_warning():
+    assert "`40 min siden`" in README, "the README does not say how quiet time reads"
+    head = function("renderSession")
+    assert "stille ${ago(" not in head, "quiet time still reads 'stille', like the warning"
+    assert "${ago(s.quietSeconds)} siden" in head, "quiet time does not read as time since"
