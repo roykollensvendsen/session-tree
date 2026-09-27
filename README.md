@@ -67,6 +67,9 @@ hundredth of a second.
 
 ## One graph on its own
 
+On a wide screen the sessions sit two side by side, so more of them fit at
+once; a session with a big graph takes the whole width.
+
 A goal card shows its graph at the width the card has. Click the goal's title
 and the same graph opens alone, filling the window, drawn live like the card.
 There the mouse wheel zooms around the pointer, a drag pans, a double-click
