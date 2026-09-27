@@ -93,6 +93,8 @@ with a yellow ring on the one in focus; Enter lights a task's arrows and opens
 its details, and Esc closes them.
 With reduced motion turned on in the phone or computer's settings, nothing on
 the page pulses or moves.
+A screen reader hears each graph as a group named after its goal, and each task
+as a button that says its subject and its state in words.
 
 Steps that wait on the same things share a level, drawn side by side. When a
 level has more steps than fit at a readable width, it wraps onto more rows
