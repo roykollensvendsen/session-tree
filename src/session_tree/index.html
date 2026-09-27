@@ -241,7 +241,8 @@
     <span><i style="background:var(--done)"></i>ferdig</span>
     <span><i style="background:var(--stall)"></i>står stille</span>
     <span><i style="background:var(--block)"></i>blokkert</span>
-    <span><i style="background:var(--pending)"></i>venter</span>
+    <span><i style="background:var(--pending)"></i>klar</span>
+    <span><i style="background:var(--pending)"></i>⏳ venter</span>
     <span><i style="background:var(--gone)"></i>forkastet</span>
   </span>
 </header>
@@ -253,7 +254,7 @@
 <script>
 const COLOR={pending:'#49556a',waiting:'#49556a',in_progress:'#3b82f6',
              completed:'#22c55e',stalled:'#eab308',blocked:'#ef4444',abandoned:'#3a4150'};
-const LABEL={pending:'venter',waiting:'venter på andre',in_progress:'jobber nå',
+const LABEL={pending:'klar',waiting:'venter på noe',in_progress:'jobber nå',
              failed:'feilet',interrupted:'avbrutt',
              completed:'ferdig',stalled:'står stille',blocked:'blokkert',abandoned:'forkastet'};
 
@@ -854,6 +855,8 @@ function renderGoal(goal,sess,width,size){
     });
     if((n.failures||[]).length) small(p.x+p.w-2*size.idFont-6,p.y+size.idTop+1,'!',size.idFont).style.fill='#ef8a8a';
     if(n.view==='completed') small(p.x+p.w-size.idFont-4,p.y+size.idTop+1,'✓',size.idFont).style.fill='#22c55e';
+    // waiting on open work looks like ready to start unless it says so
+    if(n.view==='waiting') small(p.x+p.w-size.idFont-6-(chipOf(n)?size.chipW:0),p.y+size.idTop+1,'⏳',size.idFont);
     if(asking){
       const q=small(p.x+p.w-size.idFont-5-(chipOf(n)?size.chipW:0),p.y+size.idTop+2,'?',size.idFont*1.5);
       q.style.fill='#facc15'; q.style.fontWeight='700';

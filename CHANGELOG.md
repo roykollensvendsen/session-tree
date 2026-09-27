@@ -8,6 +8,9 @@ versions follow [semantic versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
+- A task waiting on another now carries **⏳**, and one that can start is
+  called **klar**; before, the two looked the same.
+
 - In a level of a big graph that wraps onto rows, the steps still open now
   come first and the finished ones last, and a finished step is drawn with a
   quieter outline everywhere.
