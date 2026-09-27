@@ -144,7 +144,7 @@ def test_two_states_differ_in_more_than_hue(sim):
     alike = []
     for a, b in itertools.combinations(sorted(table), 2):
         if table[a]["cue"] != table[b]["cue"]:
-            continue  # a glyph, a dash or a pulse tells them apart
+            continue  # a glyph, a dash or a thick outline tells them apart
         distance = math.dist(
             seen(outline(table[a]), SIMULATIONS[sim]), seen(outline(table[b]), SIMULATIONS[sim])
         )
@@ -156,3 +156,13 @@ def test_two_states_differ_in_more_than_hue(sim):
 def test_every_glyph_cue_is_drawn():
     draw = PAGE.split("const drawNode=", 1)[1].split("\n  };", 1)[0]
     assert "look.cue" in draw, "the cue in the table is never drawn on a task"
+
+
+def test_only_a_question_fills_a_task_with_colour():
+    """Every alarm should need the reader; a blocked task rarely does (the research note, alarm design)."""
+    table = states()
+    assert table["blocked"]["fill"] == table["pending"]["fill"], "a blocked task is still filled with red"
+    assert rgba(table["stalled"]["fill"])[1] <= 0.06, "a stalled task is still filled as strongly as an alarm"
+    asks = re.search(r"\.node\.asks>rect\{[^}]*fill:(rgba\([^)]*\))", PAGE)
+    assert asks, "a task with a question is not filled"
+    assert rgba(asks.group(1))[1] >= 0.12, "a task with a question is filled no more strongly than the rest"

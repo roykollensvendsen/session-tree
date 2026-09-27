@@ -8,6 +8,11 @@ versions follow [semantic versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
+- A question for you is now the only thing that looks like an alarm: its task
+  is filled yellow and is the only thing on the page that moves. Blocked work
+  has a quieter red outline with no fill, stalled work a lighter amber, and a
+  task being worked on a thicker blue outline instead of a pulse.
+
 - A session that stands still now comes right after those with questions, so
   it is on the first screen instead of below every working session.
 

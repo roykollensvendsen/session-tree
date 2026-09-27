@@ -91,8 +91,10 @@ are done, the rest is still to do.
 Everything works from a keyboard too. Tab reaches every task, chip and control,
 with a yellow ring on the one in focus; Enter lights a task's arrows and opens
 its details, and Esc closes them.
-With reduced motion turned on in the phone or computer's settings, nothing on
-the page pulses or moves.
+Only a task with a question for you pulses, and only a question fills a task
+with colour; blocked and stalled work is marked more quietly. With reduced
+motion turned on in the phone or computer's settings, nothing on the page
+pulses or moves.
 A screen reader hears each graph as a group named after its goal, and each task
 as a button that says its subject and its state in words.
 

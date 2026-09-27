@@ -24,3 +24,12 @@ def test_nothing_animates_with_reduced_motion(chromium, demo_url, width):
     )
     context.close()
     assert not running, f"{len(running)} animations still run with reduced motion, e.g. {running[:4]}"
+
+
+def test_only_a_task_with_a_question_moves(page):
+    moving = page.evaluate(
+        "() => document.getAnimations().map(a => a.effect && a.effect.target)"
+        ".map(t => t ? !!t.closest('.node.asks') : false)"
+    )
+    assert moving, "nothing moves, not even a task with a question for you"
+    assert all(moving), f"{moving.count(False)} animations run on things that do not need you"
