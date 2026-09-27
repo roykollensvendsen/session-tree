@@ -1,0 +1,4 @@
+# Red before the change: 7264011 plus parts 1-5 of this branch, old baseline format, 2026-09-27T12:27:46Z
+FAILED tests/test_browser_accessibility.py::test_the_page_has_no_new_accessibility_problems[phone]
+FAILED tests/test_browser_accessibility.py::test_the_page_has_no_new_accessibility_problems[wide]
+2 failed in 3.37s
