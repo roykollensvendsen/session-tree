@@ -72,6 +72,17 @@
   .goals{display:flex;flex-wrap:wrap;gap:12px;align-items:flex-start}
   .goal{background:var(--panel2);border:1px solid var(--line);border-radius:8px;
         padding:9px 10px 6px;flex:1 1 330px;min-width:300px}
+  .ghead{display:flex;align-items:center;gap:6px}
+  .ghead .gtitle{flex:1;min-width:0}
+  .aslist{background:none;border:1px solid var(--line);color:var(--dim);border-radius:5px;font:inherit;font-size:14px;
+      min-width:28px;min-height:28px;cursor:pointer}
+  .aslist[aria-pressed="true"]{color:var(--ink);border-color:#3d4a5c}
+  .tasklist-wrap{overflow-x:auto}
+  .tasklist{width:100%;border-collapse:collapse;font-size:12px}
+  .tasklist th{text-align:left;color:var(--dim);font-weight:600;padding:4px 6px;border-bottom:1px solid var(--line)}
+  .tasklist td{padding:5px 6px;border-bottom:1px solid var(--line);vertical-align:top}
+  .tasklist td.num,.tasklist td.time{color:var(--dim);white-space:nowrap;font-variant-numeric:tabular-nums}
+  .tasklist tr.asks td:first-child{color:#facc15;font-weight:700}
   .gtitle{font-size:11.5px;font-weight:600;color:#cbd6e6;margin-bottom:2px;
           white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:zoom-in;min-height:24px;line-height:24px}
   .gtitle:hover{color:#ffffff;text-decoration:underline dotted}
@@ -1126,6 +1137,29 @@ function turnStrip(s, until){
   return box;
 }
 
+/* A goal as a list of its tasks, for when the graph is not the way to read it:
+   a big goal on a phone, or a screen reader (Chartability: "no table"). What
+   needs the reader comes first. Chosen per goal, and remembered. */
+let LISTED=new Set();
+try{ LISTED=new Set(JSON.parse(localStorage.getItem('st.list')||'[]')); }catch(e){ LISTED=new Set(); }
+const listKey=(s,g)=>s.sessionId+'/'+g.title;
+const RANK=['blocked','stalled','in_progress','waiting','pending','completed','abandoned'];
+function taskTable(goal){
+  const gone=HIDE_DONE?finished(goal):new Set();
+  const asking=n=>n.ask&&!n.askDismissed&&n.view!=='completed'&&n.view!=='abandoned';
+  const rank=n=>asking(n)?-1:RANK.indexOf(n.view);
+  const rows=goal.nodes.filter(n=>!gone.has(n.id)).slice().sort((a,b)=>rank(a)-rank(b)||(+a.id)-(+b.id));
+  const mark=n=>{ const c=(STATE[n.view]||{}).cue; return c&&!['dash','thick'].includes(c)?c+' ':''; };
+  const wrap=document.createElement('div'); wrap.className='tasklist-wrap';
+  wrap.innerHTML=`<table class="tasklist"><thead><tr><th scope="col">Tilstand</th><th scope="col">#</th>
+    <th scope="col">Oppgave</th><th scope="col">Venter på</th><th scope="col">Tid</th></tr></thead><tbody>${
+    rows.map(n=>`<tr class="${asking(n)?'asks':''}"><td>${asking(n)?'? spørsmål · ':''}${mark(n)}${LABEL[n.view]||n.view}</td>
+      <td class="num">${esc(n.id)}</td><td>${esc(n.subject)}${asking(n)?`<br><span style="color:#facc15">? ${esc(n.ask)}</span>`:''}</td>
+      <td class="num">${(n.waitingOn||[]).map(i=>'#'+esc(i)).join(', ')}</td><td class="time">${dur(n.durationMs)}</td></tr>`).join('')
+    }</tbody></table>`;
+  return wrap;
+}
+
 function renderSession(s){
   const rp=REPLAY.get(s.sessionId);
   const goals=rp?stateAt(s,rp.t):s.goals;
@@ -1230,13 +1264,19 @@ function renderSession(s){
       const done=live.filter(n=>n.view==='completed').length;
       const card=document.createElement('div'); card.className='goal';
       const asks=g.nodes.filter(n=>n.ask&&!n.askDismissed&&n.view!=='completed'&&n.view!=='abandoned').length;
-      card.innerHTML=`<div class="gtitle">${asks?`<span class="q" title="${asks} spørsmål venter">?</span>`:''}${esc(g.title)}</div>
+      const listed=LISTED.has(listKey(s,g));
+      card.innerHTML=`<div class="ghead"><div class="gtitle">${asks?`<span class="q" title="${asks} spørsmål venter">?</span>`:''}${esc(g.title)}</div>
+        <button class="aslist" aria-pressed="${listed}" title="${listed?'vis som graf':'vis som liste'}" aria-label="${listed?'vis som graf':'vis som liste'}">▤</button></div>
         <div class="gmeta">${done}/${live.length} ferdig${g.nodes.length>live.length?` · ${g.nodes.length-live.length} forkastet`:''}</div>
         <div class="bar"><b style="width:${live.length?done/live.length*100:0}%"></b></div>
         ${(g.danglingEdges||[]).length?`<div class="broken">⚠ peker på steg som ikke finnes: ${esc(g.danglingEdges.join(', '))}</div>`:''}
         ${(g.hasEdges===false)?`<div class="why">ingen avhengigheter mellom disse — rekkefølgen er listerekkefølgen, ikke noe som venter på noe</div>`:''}`;
       const title=card.querySelector('.gtitle');
       title.onclick=()=>openFocus(g,s); pressable(title);
+      card.querySelector('.aslist').onclick=()=>{
+        const k=listKey(s,g); if(LISTED.has(k)) LISTED.delete(k); else LISTED.add(k);
+        remember('st.list',JSON.stringify([...LISTED])); refresh();
+      };
       // this goal is work handed on from a node in another session: point back
       if(g.upstream){
         const up=document.createElement('div'); up.className='up';
@@ -1245,7 +1285,7 @@ function renderSession(s){
         card.insertBefore(up,card.children[1]);
       }
       wrap.appendChild(card);
-      PENDING.push({card:card,goal:g,sess:s});
+      if(listed) card.appendChild(taskTable(g)); else PENDING.push({card:card,goal:g,sess:s});
     });
     if(paged) wireSwipe(wrap,s.sessionId,goals.length);
     body.appendChild(wrap);
