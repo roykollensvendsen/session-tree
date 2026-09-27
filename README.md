@@ -91,6 +91,8 @@ are done, the rest is still to do.
 Everything works from a keyboard too. Tab reaches every task, chip and control,
 with a yellow ring on the one in focus; Enter lights a task's arrows and opens
 its details, and Esc closes them.
+With reduced motion turned on in the phone or computer's settings, nothing on
+the page pulses or moves.
 
 Steps that wait on the same things share a level, drawn side by side. When a
 level has more steps than fit at a readable width, it wraps onto more rows

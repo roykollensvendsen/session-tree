@@ -1,0 +1,4 @@
+# Red before the change: 7264011 plus palette and keyboard work, 2026-09-27T12:24:06Z
+FAILED tests/test_browser_motion.py::test_nothing_animates_with_reduced_motion[phone]
+FAILED tests/test_browser_motion.py::test_nothing_animates_with_reduced_motion[wide]
+2 failed in 2.03s

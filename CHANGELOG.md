@@ -77,6 +77,9 @@ versions follow [semantic versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- With reduced motion turned on, the live dot and the stand-still badge still
+  moved. Nothing moves now.
+
 - The task being worked on faded almost out of sight at each pulse. Only its
   outline pulses now.
 
