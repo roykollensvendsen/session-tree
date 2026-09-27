@@ -1,0 +1,3 @@
+# Red before the change: 0207faf plus finding 9, 2026-09-27T15:32:32Z
+FAILED tests/test_browser_layout.py::test_no_session_sits_alone_in_half_a_row[wide]
+1 failed, 1 skipped in 2.25s

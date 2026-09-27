@@ -1565,6 +1565,13 @@ function render(data){
   }
   PENDING.length=0;
   data.sessions.forEach(s=>root.appendChild(renderSession(s)));
+  // two to a row on a wide screen: a small session left alone in its row by a
+  // full-width one after it takes the full width too, so no half row stays empty
+  let col=0;
+  [...root.querySelectorAll(':scope > .sess')].forEach((el,i,all)=>{
+    if(el.classList.contains('wide')){ if(col===1) all[i-1].classList.add('wide'); col=0; }
+    else col=(col+1)%2;
+  });
   // second pass: the cards are in the document now, so their width is real
   PENDING.forEach(p=>p.card.appendChild(renderGoal(p.goal,p.sess,p.card.clientWidth-22,SIZE.card)));
   PENDING.length=0;

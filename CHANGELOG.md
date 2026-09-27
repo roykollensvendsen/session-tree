@@ -91,6 +91,9 @@ versions follow [semantic versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- On a wide screen, a small session before a full-width one sat alone with
+  half its row empty. It takes the full width now.
+
 - The line above a graph marked a blocked task with ⏸, which in the graph
   means stalled. It now uses the graph's own marks, ⛔ and ⏸.
 
