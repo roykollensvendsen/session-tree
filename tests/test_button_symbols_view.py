@@ -12,6 +12,7 @@ import pytest
 
 ROOT = pathlib.Path(__file__).parent.parent
 PAGE = (ROOT / "src/session_tree/index.html").read_text()
+README = (ROOT / "README.md").read_text()
 
 # symbol, the word it replaces
 BUTTONS = [
@@ -40,8 +41,9 @@ def test_the_button_shows_its_symbol_and_keeps_its_word(symbol, word):
     assert "aria-label=" in found[0], f"the {word!r} button has nothing for a screen reader"
 
 
-def test_the_jump_to_now_button_leads_with_its_arrow():
-    found = [b for b in buttons() if 'title="hopp til nå"' in b]
-    assert found, "no button to jump to now"
-    assert re.search(r">\s*↦", found[0]), "the jump button does not lead with ↦"
-    assert "nye" not in found[0].split(">", 1)[1], "the jump button still says 'nye'"
+def test_replay_has_one_button_back_to_now():
+    assert "**⏏ 23** goes back to now" in README, "the README does not say how replay returns to now"
+    back = [b for b in buttons() if 'title="tilbake til live"' in b]
+    assert len(back) == 1, "replay has more than one way back to now, or none"
+    assert "${behind" in back[0], "the way back does not say how much has happened since"
+    assert 'title="hopp til nå"' not in PAGE, "the second button back to now is still there"

@@ -970,13 +970,10 @@ function replayPanel(s,rp){
     <button title="neste hendelse">⏭</button>
     <input type="range" min="${a}" max="${b}" value="${rp.t}" step="1000">
     <span class="t">${clock(rp.t)}</span>
-    ${behind?`<button class="behind" title="hopp til nå" aria-label="hopp til nå, ${behind} nye">↦ ${behind}</button>`:''}
-    <button title="tilbake til live" aria-label="tilbake til live">⏏</button>`;
+    <button class="${behind?'behind':''}" title="tilbake til live" aria-label="tilbake til live${behind?`, ${behind} nye`:''}">⏏${behind?` ${behind}`:''}</button>`;
   const kids=[...bar.children];
   const liveBtn=kids[kids.length-1];
-  const behindBtn=bar.querySelector('.behind');
   const [prev,play,next,slider]=kids;
-  if(behindBtn) behindBtn.onclick=()=>{ stopPlay(s.sessionId); REPLAY.delete(s.sessionId); refresh(); };
 
   const jump=dir=>{
     stopPlay(s.sessionId);

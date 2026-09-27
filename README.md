@@ -276,6 +276,9 @@ Your own prompts sit on the timeline in green beside the node changes. That is
 the point of it: a node turning green tells you *what* happened, and the prompt
 three ticks earlier tells you *why*.
 
+**⏏ 23** goes back to now; the number is how much has happened since the
+moment you are looking at.
+
 ## Development
 
 The server is shared by every window, so stopping it interrupts nobody:
