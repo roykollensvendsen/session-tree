@@ -98,3 +98,11 @@ def test_the_line_above_a_graph_marks_states_as_the_graph_does():
     line = session.split("else if(blocked)", 1)[1].split("else if((s.turns", 1)[0]
     assert "⏸" not in line, "the line above a graph still writes ⏸ itself"
     assert "⚠" not in line, "the line above a graph still writes ⚠ itself"
+
+
+def test_nothing_at_work_is_said_only_where_work_is_expected():
+    session = function("renderSession")
+    assert "quietNow" in session, "an idle or ended session still says nothing is being worked on"
+    assert re.search(r"quietNow=[^\n]*attention!=='working'", session), (
+        "the empty line is not tied to a working session"
+    )

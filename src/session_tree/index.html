@@ -1205,7 +1205,9 @@ function renderSession(s){
   }
   else { now.className='now none';
     now.textContent=all.length?'ingen node under arbeid':'ingen oppgavegraf i denne økta';}
-  body.appendChild(now);
+  // "nothing being worked on" says nothing new for a session labelled ledig or avsluttet
+  const quietNow=now.className==='now none'&&all.length>0&&s.attention!=='working';
+  if(!quietNow) body.appendChild(now);
 
   if(!goals.length && (s.turns||[]).length){
     body.appendChild(turnStrip(s, rp?rp.t:Infinity));
