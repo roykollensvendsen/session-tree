@@ -89,3 +89,12 @@ def test_the_agent_badge_shows_only_when_the_agents_differ():
     assert re.search(r"\$\{MIXED\?`<span class=\"agent", function("renderSession")), (
         "the badge shows regardless"
     )
+
+
+def test_the_line_above_a_graph_marks_states_as_the_graph_does():
+    session = function("renderSession")
+    assert "STATE.blocked.cue" in session, "the line above a graph marks blocked with its own glyph"
+    assert "STATE.stalled.cue" in session, "the line above a graph marks stalled with its own glyph"
+    line = session.split("else if(blocked)", 1)[1].split("else if((s.turns", 1)[0]
+    assert "⏸" not in line, "the line above a graph still writes ⏸ itself"
+    assert "⚠" not in line, "the line above a graph still writes ⚠ itself"

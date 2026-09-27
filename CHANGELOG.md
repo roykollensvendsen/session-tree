@@ -83,6 +83,9 @@ versions follow [semantic versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- The line above a graph marked a blocked task with ⏸, which in the graph
+  means stalled. It now uses the graph's own marks, ⛔ and ⏸.
+
 - Faint text, faded quiet sessions, the ledig badge and the pager's dots were
   below WCAG 2.2 contrast or tap-size limits; they meet them now.
 
