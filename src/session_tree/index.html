@@ -806,6 +806,8 @@ function renderGoal(goal,sess,width,size){
   const nested=goal.nodes.some(n=>n.parent&&goal.nodes.some(m=>m.id===n.parent));
   const L=nested?layoutNested(goal,width,size):layout(goal,width,size), NS='http://www.w3.org/2000/svg';
   const svg=document.createElementNS(NS,'svg');
+  // a screen reader meets a named group of tasks, not one unnamed picture
+  svg.setAttribute('role','group'); svg.setAttribute('aria-label',`graf: ${goal.title}`);
   svg.setAttribute('viewBox',`0 0 ${L.W} ${L.height}`);
   svg.setAttribute('height',L.height);
 
@@ -1015,9 +1017,9 @@ function replayPanel(s,rp){
 
   const bar=document.createElement('div');
   bar.className='rp';
-  bar.innerHTML=`<button title="forrige hendelse">⏮</button>
-    <button title="${rp.playing?'pause':'spill av'}">${rp.playing?'⏸':'▶'}</button>
-    <button title="neste hendelse">⏭</button>
+  bar.innerHTML=`<button title="forrige hendelse" aria-label="forrige hendelse">⏮</button>
+    <button title="${rp.playing?'pause':'spill av'}" aria-label="${rp.playing?'pause':'spill av'}">${rp.playing?'⏸':'▶'}</button>
+    <button title="neste hendelse" aria-label="neste hendelse">⏭</button>
     <input type="range" min="${a}" max="${b}" value="${rp.t}" step="1000">
     <span class="t">${clock(rp.t)}</span>
     <button class="${behind?'behind':''}" title="tilbake til live" aria-label="tilbake til live${behind?`, ${behind} nye`:''}">⏏${behind?` ${behind}`:''}</button>`;
@@ -1253,8 +1255,8 @@ function pagerBar(s,goals,page){
   const flip=()=>{ pagerAll=!pagerAll; remember('st.pagerAll',pagerAll?'1':'0'); refresh(); };
   // every goal is shown: nothing to turn, so only the way back is left
   if(pagerAll){ bar.innerHTML=`<span style="flex:1"></span>${all}`; bar.querySelector('.all').onclick=flip; return bar; }
-  bar.innerHTML=`<button title="forrige mål">‹</button><span class="dots"></span><span class="n">${page+1} / ${goals.length}</span>
-    <button title="neste mål">›</button><span class="ptitle">${esc(goals[page].title)}</span>${all}`;
+  bar.innerHTML=`<button title="forrige mål" aria-label="forrige mål">‹</button><span class="dots"></span><span class="n">${page+1} / ${goals.length}</span>
+    <button title="neste mål" aria-label="neste mål">›</button><span class="ptitle">${esc(goals[page].title)}</span>${all}`;
   const [prev,,,next]=bar.children;
   prev.onclick=()=>turnPage(s.sessionId,-1,goals.length);
   next.onclick=()=>turnPage(s.sessionId,1,goals.length);

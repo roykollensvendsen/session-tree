@@ -1,0 +1,6 @@
+# Red before the change: 7264011 plus palette, keyboard and motion work, 2026-09-27T12:25:33Z
+FAILED tests/test_browser_screen_reader.py::test_each_graph_is_a_named_group_of_tasks_with_their_states[phone]
+FAILED tests/test_browser_screen_reader.py::test_each_graph_is_a_named_group_of_tasks_with_their_states[wide]
+FAILED tests/test_browser_screen_reader.py::test_no_button_is_named_only_by_a_symbol[phone]
+FAILED tests/test_browser_screen_reader.py::test_no_button_is_named_only_by_a_symbol[wide]
+4 failed in 2.81s

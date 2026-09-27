@@ -8,6 +8,9 @@ versions follow [semantic versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
+- A screen reader hears each graph as a named group and each task with its
+  state in words; every symbol button has a name.
+
 - Everything that can be clicked can be reached with Tab, with a yellow focus
   ring; Enter on a task lights it and opens its details.
 
