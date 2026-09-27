@@ -99,6 +99,12 @@
   .bandline.nowline{stroke:#3b82f6;stroke-dasharray:3 3;opacity:.5}
   @keyframes pulse{0%,100%{opacity:1}50%{opacity:.45}}
   .pulsing{animation:pulse 1.6s ease-in-out infinite}
+  /* a task being worked on pulses its outline only: fading the whole task made
+     the one thing happening now the hardest to read */
+  @keyframes outline{0%,100%{stroke-opacity:1}50%{stroke-opacity:.3}}
+  .node.pulsing{animation:none}
+  .node.pulsing>rect{animation:outline 1.6s ease-in-out infinite}
+  @media (prefers-reduced-motion:reduce){ .pulsing,.node.pulsing>rect{animation:none} }
 
   /* see-through enough that the lit wires under it still show: a popover sits
      on the graph it explains, and hiding the edges hides half the answer */

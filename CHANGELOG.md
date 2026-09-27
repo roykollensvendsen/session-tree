@@ -59,6 +59,9 @@ versions follow [semantic versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- The task being worked on faded almost out of sight at each pulse. Only its
+  outline pulses now.
+
 - On a phone the list of questions stayed stuck at the top and covered a
   quarter of the screen. It now scrolls away with the page, and **? 3** in the
   header brings it back. The header itself also stays at the top now; it used
