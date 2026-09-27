@@ -8,8 +8,8 @@
   :root{
     --bg:#0e1116; --panel:#151a22; --panel2:#1b212b; --line:#252d3a;
     --ink:#e6edf6; --dim:#8b97a8; --faint:#5b6678;
-    --pending:#49556a; --active:#3b82f6; --done:#22c55e;
-    --stall:#eab308; --block:#ef4444; --gone:#3a4150;
+    --pending:#6b7a90; --active:#3b82f6; --done:#22c55e;
+    --stall:#eab308; --block:#ef4444; --gone:#6b7a90;
   }
   *{box-sizing:border-box}
   /* min-height, not height: a body one screen tall lets the sticky header
@@ -87,7 +87,7 @@
   svg{display:block;width:100%;overflow:visible}
   .node rect{transition:opacity .2s}
   .node text{pointer-events:none;font-size:10.5px;fill:var(--ink)}
-  .node .id{font-size:9px;fill:var(--faint);font-weight:600}
+  .node .id{font-size:9px;fill:#9aa5b5;font-weight:600}
   /* a held finger is the node's, not the phone's: no callout, no text selection */
   .node{cursor:default;-webkit-touch-callout:none;-webkit-user-select:none;user-select:none}
   .node.dim{opacity:.22}
@@ -253,9 +253,9 @@
   <button class="keybtn" id="keybtn" title="hva fargene betyr" aria-label="hva fargene betyr" aria-expanded="false">ⓘ</button>
   <span class="key">
     <span><i style="background:var(--active)"></i>jobber nå</span>
-    <span><i style="background:var(--done)"></i>ferdig</span>
-    <span><i style="background:var(--stall)"></i>står stille</span>
-    <span><i style="background:var(--block)"></i>blokkert</span>
+    <span><i style="background:var(--done)"></i>✓ ferdig</span>
+    <span><i style="background:var(--stall)"></i>⏸ står stille</span>
+    <span><i style="background:var(--block)"></i>⛔ blokkert</span>
     <span><i style="background:var(--pending)"></i>klar</span>
     <span><i style="background:var(--pending)"></i>⏳ venter</span>
     <span><i style="background:var(--gone)"></i>forkastet</span>
@@ -267,8 +267,19 @@
 <div class="tip" id="tip"></div>
 
 <script>
-const COLOR={pending:'#49556a',waiting:'#49556a',in_progress:'#3b82f6',
-             completed:'#22c55e',stalled:'#eab308',blocked:'#ef4444',abandoned:'#3a4150'};
+/* How each state looks, in one table: the outline, the fill over the goal card,
+   the text, and the cue that tells it apart without colour. tests/test_palette.py
+   reads this table, so keep one state per line and plain values. */
+const STATE={
+  pending:     {stroke:'#6b7a90', strokeOpacity:1,   fill:'rgba(255,255,255,.035)', text:'#e6edf6', cue:''},
+  waiting:     {stroke:'#6b7a90', strokeOpacity:1,   fill:'rgba(255,255,255,.035)', text:'#e6edf6', cue:'⏳'},
+  in_progress: {stroke:'#3b82f6', strokeOpacity:1,   fill:'rgba(59,130,246,.2)',    text:'#e6edf6', cue:'pulse'},
+  completed:   {stroke:'#22c55e', strokeOpacity:.7,  fill:'rgba(34,197,94,.14)',    text:'#b7e6c6', cue:'✓'},
+  stalled:     {stroke:'#eab308', strokeOpacity:1,   fill:'rgba(234,179,8,.13)',    text:'#e6edf6', cue:'⏸'},
+  blocked:     {stroke:'#ef4444', strokeOpacity:1,   fill:'rgba(239,68,68,.14)',    text:'#e6edf6', cue:'⛔'},
+  abandoned:   {stroke:'#6b7a90', strokeOpacity:1,   fill:'rgba(255,255,255,.035)', text:'#8b97a8', cue:'dash'},
+};
+const COLOR=Object.fromEntries(Object.entries(STATE).map(([k,v])=>[k,v.stroke]));
 const LABEL={pending:'klar',waiting:'venter på noe',in_progress:'jobber nå',
              failed:'feilet',interrupted:'avbrutt',
              completed:'ferdig',stalled:'står stille',blocked:'blokkert',abandoned:'forkastet'};
@@ -820,16 +831,13 @@ function renderGoal(goal,sess,width,size){
     r.setAttribute('x',p.x);r.setAttribute('y',p.y);r.setAttribute('width',p.w);r.setAttribute('height',p.frame?p.frame.h:p.h);
     r.setAttribute('rx',p.frame?10:6);
     if(p.frame) g.classList.add('box');
-    const c=COLOR[n.view]||COLOR.pending;
-    r.setAttribute('fill',n.view==='completed'?'rgba(34,197,94,.14)':
-                          n.view==='in_progress'?'rgba(59,130,246,.2)':
-                          n.view==='blocked'?'rgba(239,68,68,.14)':
-                          n.view==='stalled'?'rgba(234,179,8,.13)':'rgba(255,255,255,.035)');
-    r.setAttribute('stroke',c);
+    const look=STATE[n.view]||STATE.pending;
+    r.setAttribute('fill',look.fill);
+    r.setAttribute('stroke',look.stroke);
     r.setAttribute('stroke-width',n.view==='in_progress'?2:1.2);
-    // finished work stays readable but steps back behind what is still open
-    if(n.view==='completed') r.setAttribute('stroke-opacity',.45);
-    if(n.view==='abandoned') r.setAttribute('stroke-dasharray','3 3');
+    // finished work steps back behind what is still open
+    if(look.strokeOpacity<1) r.setAttribute('stroke-opacity',look.strokeOpacity);
+    if(look.cue==='dash') r.setAttribute('stroke-dasharray','3 3');
     if(n.view==='in_progress') g.classList.add('pulsing');
     // a question on a finished node was answered and never cleared
     // and one the user dismissed no longer waits (ADR-ST-006)
@@ -852,8 +860,8 @@ function renderGoal(goal,sess,width,size){
       span.setAttribute('x',p.x+size.pad);span.setAttribute('y',p.y+size.textTop+li*size.lineH);
       span.textContent=line; label.appendChild(span);
     });
-    if(n.view==='abandoned'){label.style.fill='#5b6678';label.style.textDecoration='line-through';}
-    if(n.view==='completed')label.style.fill='#b7e6c6';
+    label.style.fill=look.text;
+    if(n.view==='abandoned') label.style.textDecoration='line-through';
     g.appendChild(label);
 
     const agentTop=p.y+size.textTop+(p.lines.length-1)*size.lineH+size.padBottom;
@@ -870,9 +878,13 @@ function renderGoal(goal,sess,width,size){
       lbl.style.fill=a.running?'#9ec8f5':'#8b97a8';
     });
     if((n.failures||[]).length) small(p.x+p.w-2*size.idFont-6,p.y+size.idTop+1,'!',size.idFont).style.fill='#ef8a8a';
-    if(n.view==='completed') small(p.x+p.w-size.idFont-4,p.y+size.idTop+1,'✓',size.idFont).style.fill='#22c55e';
-    // waiting on open work looks like ready to start unless it says so
-    if(n.view==='waiting') small(p.x+p.w-size.idFont-6-(chipOf(n)?size.chipW:0),p.y+size.idTop+1,'⏳',size.idFont);
+    // the state's glyph, so it can be told apart without colour: ✓ ⏳ ⏸ ⛔
+    if(look.cue&&!['dash','pulse'].includes(look.cue)){
+      // left of the question mark when there is one, so the two do not overlap
+      const x=p.x+p.w-size.idFont-6-(chipOf(n)?size.chipW:0)-(asking?size.idFont*1.6:0);
+      const mark=small(x,p.y+size.idTop+1,look.cue,size.idFont);
+      mark.style.fill=look.stroke;
+    }
     if(asking){
       const q=small(p.x+p.w-size.idFont-5-(chipOf(n)?size.chipW:0),p.y+size.idTop+2,'?',size.idFont*1.5);
       q.style.fill='#facc15'; q.style.fontWeight='700';
