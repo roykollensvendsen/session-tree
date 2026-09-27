@@ -1,0 +1,6 @@
+# Red before the change: 7264011 plus the palette work, 2026-09-27T12:20:23Z
+FAILED tests/test_browser_keyboard.py::test_every_clickable_thing_is_a_keyboard_stop_with_a_visible_focus_mark[phone]
+FAILED tests/test_browser_keyboard.py::test_every_clickable_thing_is_a_keyboard_stop_with_a_visible_focus_mark[wide]
+FAILED tests/test_browser_keyboard.py::test_enter_on_a_task_lights_its_arrows_and_opens_its_details[phone]
+FAILED tests/test_browser_keyboard.py::test_enter_on_a_task_lights_its_arrows_and_opens_its_details[wide]
+4 failed in 9.26s

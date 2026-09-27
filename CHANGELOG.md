@@ -8,6 +8,9 @@ versions follow [semantic versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
+- Everything that can be clicked can be reached with Tab, with a yellow focus
+  ring; Enter on a task lights it and opens its details.
+
 - Every task state now has a mark besides its colour (✓ ⏳ ⏸ ⛔, a dashed
   outline, a pulse), and the grey outlines, finished outlines and task numbers
   have enough contrast to read.

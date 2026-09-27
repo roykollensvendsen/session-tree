@@ -53,7 +53,11 @@
   .pill.bg{color:#e8d6a8;border-color:rgba(234,179,8,.4);background:rgba(234,179,8,.1)}
   .sname{font-weight:600;font-size:12.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .spath{color:var(--faint);font-size:10.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
-  .caret{color:var(--faint);transition:transform .15s;font-size:10px}
+  .caret{color:var(--faint);transition:transform .15s;font-size:10px;background:none;border:none;padding:4px;cursor:pointer;font-family:inherit}
+  /* where the keyboard is (WCAG 2.4.7): one ring for everything; a task shows it on its outline */
+  :focus-visible{outline:2px solid #facc15;outline-offset:2px}
+  .node:focus-visible,.chip:focus-visible{outline:none}
+  svg .node:focus-visible>rect,svg .chip:focus-visible>rect{stroke:#facc15;stroke-width:3.5}
   .sess.closed .caret{transform:rotate(-90deg)}
   .sess.closed .sbody{display:none}
   .sbody{padding:4px 13px 13px}
@@ -90,7 +94,7 @@
   .node .id{font-size:9px;fill:#9aa5b5;font-weight:600}
   /* a held finger is the node's, not the phone's: no callout, no text selection */
   .node{cursor:default;-webkit-touch-callout:none;-webkit-user-select:none;user-select:none}
-  .node.dim{opacity:.22}
+  .node.dim,.chip.dim{opacity:.22}
   .edge{fill:none;stroke:#2f3947;stroke-width:1.3}
   .edge.lit{stroke:#7fb2ff;stroke-width:2}
   .edge.dim{opacity:.15}
@@ -404,7 +408,8 @@ document.addEventListener('pointermove',e=>{ if(e.pointerType==='mouse') TOUCH=f
 const LONG_PRESS_MS=500, PRESS_SLOP_PX=10;
 let PRESS=null, TAPPED=null, FINGERS=0, DOWN=null;
 function lightNode(svg,n){
-  svg.querySelectorAll('.node').forEach(o=>o.classList.toggle('dim',o.dataset.id!==n.id &&
+  // a task's chip is drawn beside it, not in it, and dims with it
+  svg.querySelectorAll('.node,.chip').forEach(o=>o.classList.toggle('dim',o.dataset.id!==n.id &&
     !(n.blockedBy||[]).includes(o.dataset.id) && !(n.blocks||[]).includes(o.dataset.id)));
   svg.querySelectorAll('.edge').forEach(o=>{
     const lit=o.dataset.from===n.id||o.dataset.to===n.id;
@@ -412,7 +417,7 @@ function lightNode(svg,n){
   });
 }
 function unlight(root){
-  root.querySelectorAll('.node.dim').forEach(o=>o.classList.remove('dim'));
+  root.querySelectorAll('.node.dim,.chip.dim').forEach(o=>o.classList.remove('dim'));
   root.querySelectorAll('.edge.lit,.edge.dim').forEach(o=>{o.classList.remove('lit');o.classList.remove('dim');});
 }
 /* A quick tap: light this node, or put it out if it was the one lit. The choice
@@ -457,6 +462,22 @@ document.addEventListener('pointercancel',e=>{
   if(e.pointerType!=='mouse') FINGERS=Math.max(0,FINGERS-1);
   if(PRESS&&e.pointerId===PRESS.id) cancelPress();
 },{capture:true,passive:true});
+
+/* A clickable thing that is not a button: Tab reaches it, and Enter or Space
+   does what a click does (WCAG 2.1.1). */
+function pressable(el,label){
+  el.setAttribute('tabindex','0'); el.setAttribute('role','button');
+  if(label) el.setAttribute('aria-label',label);
+  el.addEventListener('keydown',e=>{
+    if(e.key!=='Enter'&&e.key!==' ') return;
+    e.preventDefault(); e.stopPropagation();
+    el.dispatchEvent(new MouseEvent('click',{bubbles:true}));
+  });
+}
+// Escape closes a task's details before anything else it might close
+addEventListener('keydown',e=>{
+  if(e.key==='Escape'&&tip.classList.contains('on')){ hideTip(); e.stopImmediatePropagation(); }
+},{capture:true});
 
 function showTip(e,html,anchor){
   const vp=visibleArea();
@@ -893,8 +914,9 @@ function renderGoal(goal,sess,width,size){
     // in another session (↗). It takes the colour of the worst step under it,
     // and it is a tap target of its own, the full height of the node.
     const chip=chipOf(n);
+    let chipEl=null;
     if(chip){
-      const c=document.createElementNS(NS,'g'); c.setAttribute('class','chip');
+      const c=document.createElementNS(NS,'g'); c.setAttribute('class','chip'); c.dataset.id=n.id;
       const cr=document.createElementNS(NS,'rect');
       cr.setAttribute('x',p.x+p.w-size.chipW); cr.setAttribute('y',p.y);
       cr.setAttribute('width',size.chipW); cr.setAttribute('height',p.h); cr.setAttribute('rx',6);
@@ -918,7 +940,9 @@ function renderGoal(goal,sess,width,size){
         if(chip.kind==='remote') goToQuestion(chip.sessionId,chip.nodeId);
         else toggleFold(sess,n);
       });
-      g.appendChild(c);
+      pressable(c,chip.kind==='remote'?'gå til arbeidet i den andre økta':(isFolded(sess,n)?'vis delmålene':'skjul delmålene'));
+      // beside the task, not inside it: a button inside a button is lost to a screen reader
+      chipEl=c;
     }
 
     const details=()=>{
@@ -949,7 +973,18 @@ function renderGoal(goal,sess,width,size){
       if(e.pointerType!=='mouse') pressNode(e,svg,n,key,ev=>showTip(ev,details(),r));
     });
     g.addEventListener('contextmenu',e=>e.preventDefault());
+    // the keyboard has no hover and no hold: Enter or Space lights the task and opens its details
+    g.setAttribute('tabindex','0'); g.setAttribute('role','button');
+    g.setAttribute('aria-label',`#${n.id} ${n.subject}, ${LABEL[n.view]||n.view}`);
+    g.addEventListener('keydown',e=>{
+      if(e.key!=='Enter'&&e.key!==' ') return;
+      e.preventDefault();
+      unlight(document); TAPPED={key:key,id:n.id}; lightNode(svg,n);
+      const b=r.getBoundingClientRect();
+      showTip({clientX:b.right,clientY:b.top},details(),r);
+    });
     svg.appendChild(g);
+    if(chipEl) svg.appendChild(chipEl);
   };
   // boxes first, outermost first, so the edges and steps inside them lie on top
   const nest=id=>{ let d=0; for(let q=goal.nodes.find(m=>m.id===id);q&&q.parent;q=goal.nodes.find(m=>m.id===q.parent)) d++; return d; };
@@ -1101,7 +1136,8 @@ function renderSession(s){
   head.className='shead';
   const state=s.active?'<span class="pill on">aktiv</span>':
     (s.alive?`<span class="pill">${ago(s.quietSeconds)} siden</span>`:'<span class="pill">avsluttet</span>');
-  head.innerHTML=`<span class="caret">▾</span>${state}
+  // the caret is the header's keyboard stop; its click reaches the header's own
+  head.innerHTML=`<button class="caret" aria-label="vis eller skjul økta" aria-expanded="${!shut}">▾</button>${state}
     ${s.kind==='bg'?'<span class="pill bg">bakgrunn</span>':''}
     <span class="sname">${esc(s.name||s.firstPrompt||'(uten navn)')}</span>
     <span class="spath">${esc(s.project)}${s.branch?' · '+esc(s.branch):''}</span>
@@ -1186,12 +1222,13 @@ function renderSession(s){
         <div class="bar"><b style="width:${live.length?done/live.length*100:0}%"></b></div>
         ${(g.danglingEdges||[]).length?`<div class="broken">⚠ peker på steg som ikke finnes: ${esc(g.danglingEdges.join(', '))}</div>`:''}
         ${(g.hasEdges===false)?`<div class="why">ingen avhengigheter mellom disse — rekkefølgen er listerekkefølgen, ikke noe som venter på noe</div>`:''}`;
-      card.querySelector('.gtitle').onclick=()=>openFocus(g,s);
+      const title=card.querySelector('.gtitle');
+      title.onclick=()=>openFocus(g,s); pressable(title);
       // this goal is work handed on from a node in another session: point back
       if(g.upstream){
         const up=document.createElement('div'); up.className='up';
         up.innerHTML=`↖ for <b>#${esc(g.upstream.nodeId)}</b> ${esc(g.upstream.subject)} <span style="color:var(--faint)">· ${esc(g.upstream.title)}</span>`;
-        up.onclick=()=>goToQuestion(g.upstream.sessionId,g.upstream.nodeId);
+        up.onclick=()=>goToQuestion(g.upstream.sessionId,g.upstream.nodeId); pressable(up);
         card.insertBefore(up,card.children[1]);
       }
       wrap.appendChild(card);
@@ -1223,6 +1260,7 @@ function pagerBar(s,goals,page){
   goals.forEach((g,i)=>{
     const d=document.createElement('i'); if(i===page) d.className='on'; d.title=g.title;
     d.onclick=()=>{ PAGE[s.sessionId]=i; remember('st.page',JSON.stringify(PAGE)); refresh(); };
+    pressable(d,`mål ${i+1}: ${g.title}`);
     dots.appendChild(d);
   });
   bar.querySelector('.all').onclick=flip;
