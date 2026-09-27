@@ -8,6 +8,9 @@ versions follow [semantic versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
+- A session that stands still now comes right after those with questions, so
+  it is on the first screen instead of below every working session.
+
 - A screen reader hears each graph as a named group and each task with its
   state in words; every symbol button has a name.
 

@@ -287,3 +287,13 @@ def test_a_session_with_a_question_comes_first():
     ended = {"attention": "ended", "active": False, "alive": False, "startedAt": 4}
     ordered = sorted([ended, idle, working, asking], key=state.session_order)
     assert ordered == [asking, working, idle, ended]
+
+
+def test_a_session_that_stands_still_comes_after_questions_and_before_work():
+    from session_tree import state  # noqa: PLC0415 - one test needs the module's sort key
+
+    asking = {"attention": "asking", "active": False, "alive": True, "startedAt": 1}
+    stalled = {"attention": "stalled", "active": False, "alive": True, "startedAt": 2}
+    working = {"attention": "working", "active": True, "alive": True, "startedAt": 3}
+    ordered = sorted([working, stalled, asking], key=state.session_order)
+    assert ordered == [asking, stalled, working]
