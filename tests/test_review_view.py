@@ -120,3 +120,18 @@ def test_a_lit_task_tells_what_it_waits_on_from_what_waits_on_it():
     assert "'waits'" in light, "arrows into a lit task are not marked"
     assert "'feeds'" in light, "arrows out of a lit task are not marked"
     assert re.search(r"\.edge\.lit\.feeds\{[^}]*stroke-dasharray", PAGE), "both kinds of arrow look the same"
+
+
+def test_text_in_the_cards_is_big_enough_to_read():
+    """Chartability counts text under 12 px as a critical problem; a card is shown at full size."""
+    card = dict(re.findall(r"(\w+):([\d.]+)", PAGE.split("card:{", 1)[1].split("}", 1)[0]))
+    assert float(card["font"]) >= 12, f"task text in a card is {card['font']} px"
+    assert float(card["idFont"]) >= 11, f"task numbers in a card are {card['idFont']} px"
+    assert float(card["agentFont"]) >= 11, f"agent lines in a card are {card['agentFont']} px"
+    for rule in (
+        r"\.node text\{[^}]*font-size:([\d.]+)px",
+        r"\.node \.id\{font-size:([\d.]+)px",
+        r"\.bandlbl\{font-size:([\d.]+)px",
+    ):
+        size = float(re.search(rule, PAGE).group(1))
+        assert size >= 11, f"{rule} sets {size} px"

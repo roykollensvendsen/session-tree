@@ -91,8 +91,8 @@
 
   svg{display:block;width:100%;overflow:visible}
   .node rect{transition:opacity .2s}
-  .node text{pointer-events:none;font-size:10.5px;fill:var(--ink)}
-  .node .id{font-size:9px;fill:#9aa5b5;font-weight:600}
+  .node text{pointer-events:none;font-size:12px;fill:var(--ink)}
+  .node .id{font-size:11px;fill:#9aa5b5;font-weight:600}
   /* a held finger is the node's, not the phone's: no callout, no text selection */
   .node{cursor:default;-webkit-touch-callout:none;-webkit-user-select:none;user-select:none}
   .node.dim,.chip.dim{opacity:.22}
@@ -100,7 +100,7 @@
   .edge.lit{stroke:#7fb2ff;stroke-width:2}
   .edge.lit.feeds{stroke:#9aa5b5;stroke-dasharray:5 4}
   .edge.dim{opacity:.15}
-  .bandlbl{font-size:9px;fill:var(--faint)}
+  .bandlbl{font-size:11px;fill:var(--faint)}
   .bandline{stroke:#1f2732;stroke-width:1}
   .bandline.nowline{stroke:#3b82f6;stroke-dasharray:3 3;opacity:.5}
   @keyframes pulse{0%,100%{opacity:1}50%{opacity:.45}}
@@ -532,8 +532,8 @@ function rehover(){
    size, and a subject gets up to three lines. Sizes are in the drawing's own
    units, which are CSS pixels when the focus is at full size. */
 const SIZE={
-  card:{nodeW:190,minNodeW:110,rowMax:0,minW:300,grow:false,pad:7,idFont:9,font:10.5,lines:1,lineH:11,idTop:12,textTop:23,
-        agentH:12,agentFont:9,padBottom:7,bandGap:22,colGap:8,chipW:44},
+  card:{nodeW:190,minNodeW:110,rowMax:0,minW:300,grow:false,pad:7,idFont:11,font:12,lines:1,lineH:14,idTop:14,textTop:28,
+        agentH:15,agentFont:11,padBottom:8,bandGap:24,colGap:8,chipW:48},
   large:{nodeW:250,minNodeW:250,rowMax:6,minW:0,grow:true,pad:10,idFont:11.5,font:14,lines:3,lineH:18,idTop:16,textTop:34,
          agentH:17,agentFont:11.5,padBottom:10,bandGap:40,colGap:18,chipW:66},
 };
