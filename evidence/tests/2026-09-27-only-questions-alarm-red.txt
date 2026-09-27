@@ -1,0 +1,5 @@
+# Red before the change: 4061a18 plus README and SKILL.md, 2026-09-27T13:41:15Z
+FAILED tests/test_palette.py::test_only_a_question_fills_a_task_with_colour
+FAILED tests/test_browser_motion.py::test_only_a_task_with_a_question_moves[phone]
+FAILED tests/test_browser_motion.py::test_only_a_task_with_a_question_moves[wide]
+3 failed, 23 passed in 2.65s

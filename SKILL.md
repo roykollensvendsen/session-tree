@@ -100,7 +100,7 @@ longer than a step or two, and keep it true for as long as the work lasts:
   and occasionally merges two unrelated goals that happen to share a node.
 - **Break delegated work down in your own graph, before the agent starts.** A
   subagent's own steps are not drawn: it hangs on the node that spawned it as
-  one pulsing dot. So a goal handed to an agent gets its checkable sub-goals as
+  one blue dot. So a goal handed to an agent gets its checkable sub-goals as
   nodes here, wired in order (reproduced, failing test, fix, green, looked at,
   the user tried it, committed), and you move them as the agent reports. Start
   the node the agent works on before you spawn it: the view hangs an agent on
@@ -134,12 +134,13 @@ longer than a step or two, and keep it true for as long as the work lasts:
 
 ## What the colours mean
 
-`blue, pulsing` worked on now (the outline pulses, the text stays readable) ·
-`green ✓` done · `grey` ready to start · `grey ⏳` waiting on another task that
-is still open · `red ⛔` blocked by an open dependency · `amber ⏸` in_progress
-but the transcript has been silent 15 minutes · `dashed, struck through`
-abandoned. Every state has a mark besides its colour, so none depends on
-telling colours apart (tests/test_palette.py).
+`blue, thick outline` worked on now · `yellow, filled, ?, pulsing` a question
+waiting for you (the outline pulses, the text stays readable), the only thing
+on the page that moves · `green ✓` done · `grey` ready to start ·
+`grey ⏳` waiting on another task that is still open · `quiet red ⛔` blocked
+by an open dependency · `amber ⏸` in_progress but the transcript has been silent 15
+minutes · `dashed, struck through` abandoned. Every state has a mark besides
+its colour, so none depends on telling colours apart (tests/test_palette.py).
 
 Amber is inferred, not reported. It is the one state that cannot be faked by
 forgetting to update a task, which is why it is there.
@@ -164,7 +165,7 @@ that session stops following it, and the others keep updating.
 
 ## Subagents and attention
 
-A node shows the subagents it spawned, running ones pulsing. Agents spawned
+A node shows the subagents it spawned, running ones blue, finished ones green. Agents spawned
 before any task existed — a review panel usually is — belong to the session, not
 to a node, and say so.
 

@@ -9,7 +9,7 @@
     --bg:#0e1116; --panel:#151a22; --panel2:#1b212b; --line:#252d3a;
     --ink:#e6edf6; --dim:#8b97a8; --faint:#8490a2;
     --pending:#6b7a90; --active:#3b82f6; --done:#22c55e;
-    --stall:#eab308; --block:#ef4444; --gone:#6b7a90;
+    --stall:#eab308; --block:#b85c5c; --gone:#6b7a90;
   }
   *{box-sizing:border-box}
   /* min-height, not height: a body one screen tall lets the sticky header
@@ -28,9 +28,8 @@
   h1{font-size:13px;font-weight:600;margin:0;letter-spacing:.3px}
   .live{display:flex;align-items:center;gap:6px;color:var(--dim);font-size:11px}
   .dot{width:7px;height:7px;border-radius:50%;background:var(--done);
-       box-shadow:0 0 0 0 rgba(34,197,94,.6); animation:beat 2s infinite}
+       box-shadow:0 0 0 0 rgba(34,197,94,.6)}
   .dot.off{background:var(--block);animation:none}
-  @keyframes beat{0%{box-shadow:0 0 0 0 rgba(34,197,94,.5)}70%{box-shadow:0 0 0 7px rgba(34,197,94,0)}100%{box-shadow:0 0 0 0 rgba(34,197,94,0)}}
   .spacer{flex:1}
   .key{display:flex;gap:11px;flex-wrap:wrap;font-size:10.5px;color:var(--dim)}
   .key i{display:inline-block;width:8px;height:8px;border-radius:2px;margin-right:4px;vertical-align:-1px}
@@ -105,8 +104,8 @@
   .bandline.nowline{stroke:#3b82f6;stroke-dasharray:3 3;opacity:.5}
   @keyframes pulse{0%,100%{opacity:1}50%{opacity:.45}}
   .pulsing{animation:pulse 1.6s ease-in-out infinite}
-  /* a task being worked on pulses its outline only: fading the whole task made
-     the one thing happening now the hardest to read */
+  /* a task with a question pulses its outline only, the one motion on the page:
+     fading the whole task made the thing that needs you the hardest to read */
   @keyframes outline{0%,100%{stroke-opacity:1}50%{stroke-opacity:.3}}
   .node.pulsing{animation:none}
   .node.pulsing>rect{animation:outline 1.6s ease-in-out infinite}
@@ -136,9 +135,8 @@
   .rp button:hover{background:#263041;border-color:#3d4a5c}
   .rp .t{font-variant-numeric:tabular-nums;color:#c9b6ef;font-size:11px;min-width:96px}
   .behind{background:#9370db;color:#160d24;border:none;border-radius:99px;padding:2px 9px;
-      font-size:10.5px;font-weight:700;cursor:pointer;white-space:nowrap;animation:nudge 2s infinite}
+      font-size:10.5px;font-weight:700;cursor:pointer;white-space:nowrap}
   .behind:hover{background:#a98be6}
-  @keyframes nudge{0%,100%{opacity:1}50%{opacity:.62}}
   .sess.frozen{box-shadow:inset 0 0 0 1px rgba(147,112,219,.5)}
   .sess.frozen .shead{background:linear-gradient(90deg,rgba(147,112,219,.16),transparent)}
   .rp input[type=range]{flex:1;accent-color:#9370db;height:3px;cursor:pointer;min-width:90px}
@@ -164,15 +162,15 @@
   .tn-completed{background:rgba(34,197,94,.55)}
   .tn-failed{background:rgba(239,68,68,.75)}
   .tn-interrupted{background:rgba(234,179,8,.6)}
-  .tn-in_progress{background:rgba(59,130,246,.8);animation:pulse 1.6s ease-in-out infinite}
+  .tn-in_progress{background:rgba(59,130,246,.8)}
   .why{font-size:10.5px;color:var(--faint);font-style:italic;padding:2px 0 8px}
   .att{font-size:10px;padding:1.5px 7px;border-radius:99px;white-space:nowrap;font-weight:600}
   .att.waiting{color:#0e1116;background:#d8b4fe}
-  .att.stalled{color:#0e1116;background:var(--stall);animation:nudge 2s infinite}
+  .att.stalled{color:#0e1116;background:var(--stall)}
   /* a question waiting: the one request of the watcher that names what it wants */
   .att.asking{color:#1a1300;background:#facc15}
   .gtitle .q{color:#facc15;font-weight:700;margin-right:5px}
-  .node.asks rect{stroke:#facc15;stroke-width:2}
+  .node.asks>rect{stroke:#facc15;stroke-width:2.5;fill:rgba(250,204,21,.14)}
   .node.lit rect{stroke:#facc15;stroke-width:3.5;filter:drop-shadow(0 0 7px rgba(250,204,21,.8))}
   .tip .ask{color:#facc15;margin:5px 0;font-weight:600}
   .chip{cursor:pointer}
@@ -282,10 +280,10 @@
 const STATE={
   pending:     {stroke:'#6b7a90', strokeOpacity:1,   fill:'rgba(255,255,255,.035)', text:'#e6edf6', cue:''},
   waiting:     {stroke:'#6b7a90', strokeOpacity:1,   fill:'rgba(255,255,255,.035)', text:'#e6edf6', cue:'⏳'},
-  in_progress: {stroke:'#3b82f6', strokeOpacity:1,   fill:'rgba(59,130,246,.2)',    text:'#e6edf6', cue:'pulse'},
+  in_progress: {stroke:'#3b82f6', strokeOpacity:1,   fill:'rgba(59,130,246,.2)',    text:'#e6edf6', cue:'thick'},
   completed:   {stroke:'#22c55e', strokeOpacity:.7,  fill:'rgba(34,197,94,.14)',    text:'#b7e6c6', cue:'✓'},
-  stalled:     {stroke:'#eab308', strokeOpacity:1,   fill:'rgba(234,179,8,.13)',    text:'#e6edf6', cue:'⏸'},
-  blocked:     {stroke:'#ef4444', strokeOpacity:1,   fill:'rgba(239,68,68,.14)',    text:'#e6edf6', cue:'⛔'},
+  stalled:     {stroke:'#eab308', strokeOpacity:1,   fill:'rgba(234,179,8,.06)',    text:'#e6edf6', cue:'⏸'},
+  blocked:     {stroke:'#b85c5c', strokeOpacity:1,   fill:'rgba(255,255,255,.035)', text:'#e6edf6', cue:'⛔'},
   abandoned:   {stroke:'#6b7a90', strokeOpacity:1,   fill:'rgba(255,255,255,.035)', text:'#8b97a8', cue:'dash'},
 };
 const COLOR=Object.fromEntries(Object.entries(STATE).map(([k,v])=>[k,v.stroke]));
@@ -862,15 +860,15 @@ function renderGoal(goal,sess,width,size){
     const look=STATE[n.view]||STATE.pending;
     r.setAttribute('fill',look.fill);
     r.setAttribute('stroke',look.stroke);
-    r.setAttribute('stroke-width',n.view==='in_progress'?2:1.2);
+    r.setAttribute('stroke-width',look.cue==='thick'?2.5:1.2);
     // finished work steps back behind what is still open
     if(look.strokeOpacity<1) r.setAttribute('stroke-opacity',look.strokeOpacity);
     if(look.cue==='dash') r.setAttribute('stroke-dasharray','3 3');
-    if(n.view==='in_progress') g.classList.add('pulsing');
     // a question on a finished node was answered and never cleared
     // and one the user dismissed no longer waits (ADR-ST-006)
     const asking=n.ask&&!n.askDismissed&&n.view!=='completed'&&n.view!=='abandoned';
-    if(asking) g.classList.add('asks');
+    // a question is the one thing that needs the reader: the only fill of its own, and the only motion
+    if(asking) g.classList.add('asks','pulsing');
     g.appendChild(r);
 
     const small=(x,y,text,px)=>{
@@ -898,7 +896,6 @@ function renderGoal(goal,sess,width,size){
       const dot=document.createElementNS(NS,'circle');
       dot.setAttribute('cx',p.x+size.pad+4);dot.setAttribute('cy',mid);dot.setAttribute('r',size.agentFont/3);
       dot.setAttribute('fill',a.running?'#3b82f6':'#22c55e');
-      if(a.running) dot.setAttribute('class','pulsing');
       g.appendChild(dot);
       const room=p.w-2*size.pad-12;
       const lbl=small(p.x+size.pad+12,mid+size.agentFont*0.36,
@@ -907,7 +904,7 @@ function renderGoal(goal,sess,width,size){
     });
     if((n.failures||[]).length) small(p.x+p.w-2*size.idFont-6,p.y+size.idTop+1,'!',size.idFont).style.fill='#ef8a8a';
     // the state's glyph, so it can be told apart without colour: ✓ ⏳ ⏸ ⛔
-    if(look.cue&&!['dash','pulse'].includes(look.cue)){
+    if(look.cue&&!['dash','thick'].includes(look.cue)){
       // left of the question mark when there is one, so the two do not overlap
       const x=p.x+p.w-size.idFont-6-(chipOf(n)?size.chipW:0)-(asking?size.idFont*1.6:0);
       const mark=small(x,p.y+size.idTop+1,look.cue,size.idFont);
