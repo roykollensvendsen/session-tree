@@ -201,6 +201,9 @@
   @media (max-width:640px){
     header{padding:8px 16px;gap:8px;flex-wrap:wrap}
     .key{display:none}
+    /* the key is folded away on a phone; ⓘ opens it on a row of its own */
+    header button.keybtn{display:inline-block}
+    header.showkey .key{display:flex;flex:1 1 100%;order:1;padding-top:4px}
     main{padding:12px 16px 40px}
     .sbody{padding:4px 10px 12px}
     .goal{flex:1 1 100%;min-width:0}
@@ -221,6 +224,8 @@
     #asks{position:static}
     header .askcount:not([hidden]){display:inline-block}
   }
+  header .keybtn{display:none;background:var(--panel2);border:1px solid var(--line);color:var(--ink);border-radius:6px;
+      padding:2px 9px;font:inherit;font-size:14px;cursor:pointer;min-height:32px}
   header .askcount{display:none;background:#1d1a0c;border:1px solid #5c4d12;color:#facc15;border-radius:6px;
       padding:2px 9px;font:inherit;font-size:13px;font-weight:700;cursor:pointer;min-height:32px}
   header .hidedone{background:var(--panel2);border:1px solid var(--line);color:var(--ink);border-radius:6px;
@@ -236,6 +241,7 @@
   <span class="spacer"></span>
   <button class="askcount" id="askcount" hidden title="spørsmål til deg" aria-label="spørsmål til deg"></button>
   <button class="hidedone" id="hidedone" title="skjul ferdige" aria-label="skjul ferdige" aria-pressed="false">✓</button>
+  <button class="keybtn" id="keybtn" title="hva fargene betyr" aria-label="hva fargene betyr" aria-expanded="false">ⓘ</button>
   <span class="key">
     <span><i style="background:var(--active)"></i>jobber nå</span>
     <span><i style="background:var(--done)"></i>ferdig</span>
@@ -1232,6 +1238,10 @@ addEventListener('keydown',e=>{
 });
 
 function refresh(){ if(LAST) render(LAST); }
+{
+  const kb=document.getElementById('keybtn'), hd=document.querySelector('header');
+  kb.onclick=()=>{ const on=hd.classList.toggle('showkey'); kb.setAttribute('aria-expanded',String(on)); };
+}
 {
   const box=document.getElementById('hidedone');
   const show=()=>{ box.classList.toggle('on',HIDE_DONE); box.setAttribute('aria-pressed',String(HIDE_DONE)); };

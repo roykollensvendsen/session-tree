@@ -28,3 +28,12 @@ def test_a_task_that_waits_looks_different_from_one_that_can_start():
     key = PAGE.split('<span class="key">', 1)[1].split("</span>\n</header>", 1)[0]
     assert "klar" in key, "the colour key has no 'klar'"
     assert "⏳" in key, "the colour key does not show ⏳"
+
+
+def test_the_colour_key_can_be_opened_on_a_phone():
+    assert "**ⓘ** in the header shows it" in README, "the README does not say where the key is on a phone"
+    header = PAGE.split("<header>", 1)[1].split("</header>", 1)[0]
+    assert 'id="keybtn"' in header, "there is no button for the key"
+    phone = PAGE.split("@media (max-width:640px){", 1)[1].split("\n  }\n", 1)[0]
+    assert "header.showkey .key" in phone, "the button cannot bring the key back on a phone"
+    assert "header button.keybtn{display:inline-block}" in phone, "the button stays hidden on a phone"
