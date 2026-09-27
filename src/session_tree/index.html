@@ -35,6 +35,12 @@
   .key{display:flex;gap:11px;flex-wrap:wrap;font-size:10.5px;color:var(--dim)}
   .key i{display:inline-block;width:8px;height:8px;border-radius:2px;margin-right:4px;vertical-align:-1px}
   main{padding:14px 16px 60px}
+  /* a wide screen: sessions two side by side; one with a big graph takes the width */
+  @media (min-width:1100px){
+    main{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px;align-items:start}
+    .sess{margin-bottom:0}
+    .sess.wide{grid-column:1/-1}
+  }
 
   .sess{background:var(--panel);border:1px solid var(--line);border-radius:10px;margin-bottom:12px;overflow:hidden}
   .sess.idle{opacity:.58}
@@ -1071,9 +1077,11 @@ function renderSession(s){
   // otherwise every finished Codex thread would hide its own content.
   const empty=!goals.length&&!(s.turns||[]).length&&!s.active;
   const shut=collapsed.has(s.sessionId)||(empty&&!opened.has(s.sessionId));
+  // a big graph needs the whole width of a wide screen; the rest share it
+  const big=(s.goals||[]).some(g=>(g.nodes||[]).length>12);
   // a quiet session is drawn dimmer, but never one that needs you
   const needsYou=s.attention==='asking'||s.attention==='stalled';
-  el.className='sess'+(s.active||needsYou?'':' idle')+(shut?' closed':'')+(rp?' frozen':'');
+  el.className='sess'+(s.active||needsYou?'':' idle')+(shut?' closed':'')+(rp?' frozen':'')+(big?' wide':'');
   el.id='s-'+s.sessionId;
 
   const head=document.createElement('div');

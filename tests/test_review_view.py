@@ -37,3 +37,14 @@ def test_the_colour_key_can_be_opened_on_a_phone():
     phone = PAGE.split("@media (max-width:640px){", 1)[1].split("\n  }\n", 1)[0]
     assert "header.showkey .key" in phone, "the button cannot bring the key back on a phone"
     assert "header button.keybtn{display:inline-block}" in phone, "the button stays hidden on a phone"
+
+
+def test_a_wide_screen_shows_sessions_side_by_side():
+    assert "sessions sit two side by side" in README, "the README does not say how a wide screen is used"
+    wide = re.search(r"@media \(min-width:1100px\)\{(.*?)\n  \}", PAGE, re.DOTALL)
+    assert wide, "nothing changes on a wide screen"
+    assert "grid-template-columns" in wide.group(1), "sessions are not laid out in columns"
+    assert ".sess.wide{grid-column:1/-1}" in wide.group(1), (
+        "a session with a big graph does not take the width"
+    )
+    assert "' wide'" in function("renderSession"), "no session is marked as having a big graph"

@@ -8,6 +8,9 @@ versions follow [semantic versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
+- A wide screen shows sessions two side by side; a session with a big graph
+  takes the whole width.
+
 - On a phone, **ⓘ** in the header opens the colour key, which was hidden.
 
 - A task waiting on another now carries **⏳**, and one that can start is
