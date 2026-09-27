@@ -1087,7 +1087,7 @@ function renderSession(s){
   const head=document.createElement('div');
   head.className='shead';
   const state=s.active?'<span class="pill on">aktiv</span>':
-    (s.alive?`<span class="pill">stille ${ago(s.quietSeconds)}</span>`:'<span class="pill">avsluttet</span>');
+    (s.alive?`<span class="pill">${ago(s.quietSeconds)} siden</span>`:'<span class="pill">avsluttet</span>');
   head.innerHTML=`<span class="caret">▾</span>${state}
     ${s.kind==='bg'?'<span class="pill bg">bakgrunn</span>':''}
     <span class="sname">${esc(s.name||s.firstPrompt||'(uten navn)')}</span>

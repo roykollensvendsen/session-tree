@@ -193,7 +193,8 @@ is idle with the process alive: it has finished its turn, and has not
 necessarily asked you anything. `står
 stille` means the session claims to be busy while nothing has been written for
 fifteen minutes, which is the one case where going in and looking is worth
-doing.
+doing. How long ago a session last did anything reads `40 min siden`, so it is
+not mistaken for that warning.
 
 ## A question waiting on you
 
