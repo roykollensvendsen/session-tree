@@ -21,9 +21,10 @@ def function(name: str) -> str:
 
 
 def test_a_task_that_waits_looks_different_from_one_that_can_start():
-    assert "`grey with ⏳` waiting" in SKILL, "SKILL.md does not tell ready from waiting"
+    assert "`grey ⏳` waiting" in SKILL, "SKILL.md does not tell ready from waiting"
     draw = PAGE.split("const drawNode=", 1)[1].split("\n  };", 1)[0]
-    assert re.search(r"view==='waiting'\)[^\n]*'⏳'", draw), "a waiting task carries no ⏳"
+    assert re.search(r"waiting:\s*\{[^\n]*cue:'⏳'", PAGE), "a waiting task carries no ⏳"
+    assert "look.cue" in draw, "the state's glyph is never drawn"
     assert "pending:'klar'" in PAGE, "a task that can start is still called 'venter'"
     key = PAGE.split('<span class="key">', 1)[1].split("</span>\n</header>", 1)[0]
     assert "klar" in key, "the colour key has no 'klar'"

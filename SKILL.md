@@ -134,10 +134,12 @@ longer than a step or two, and keep it true for as long as the work lasts:
 
 ## What the colours mean
 
-`blue, pulsing` worked on now (the outline pulses, the text stays readable) · `green` done · `grey` ready to start ·
-`grey with ⏳` waiting on another task that is still open ·
-`red` blocked by an open dependency · `amber` in_progress but the transcript has
-been silent 15 minutes · `struck through` abandoned.
+`blue, pulsing` worked on now (the outline pulses, the text stays readable) ·
+`green ✓` done · `grey` ready to start · `grey ⏳` waiting on another task that
+is still open · `red ⛔` blocked by an open dependency · `amber ⏸` in_progress
+but the transcript has been silent 15 minutes · `dashed, struck through`
+abandoned. Every state has a mark besides its colour, so none depends on
+telling colours apart (tests/test_palette.py).
 
 Amber is inferred, not reported. It is the one state that cannot be faked by
 forgetting to update a task, which is why it is there.
