@@ -91,8 +91,20 @@ def run_suite() -> tuple[int, list[str]]:
     # second the second run can execute the first one's bytecode and report a
     # kill for the wrong rule. Writing no bytecode at all removes the race.
     env = {**os.environ, "PYTHONDONTWRITEBYTECODE": "1"}
+    # No rule lives in the page, so the browser tests would only multiply the run (ADR-ST-007).
     r = subprocess.run(
-        [sys.executable, "-m", "pytest", "-q", "--tb=no", "--color=no", "-p", "no:cacheprovider"],
+        [
+            sys.executable,
+            "-m",
+            "pytest",
+            "-q",
+            "--tb=no",
+            "--color=no",
+            "-p",
+            "no:cacheprovider",
+            "-m",
+            "not browser",
+        ],
         env=env,
         capture_output=True,
         text=True,

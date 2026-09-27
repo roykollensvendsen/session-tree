@@ -223,3 +223,84 @@ def built(transcript: Transcript) -> Transcript:
     transcript.update(dropped, at=130, status="deleted")
     transcript.update(second, at=140, status="in_progress")
     return transcript
+
+
+# --- A real browser on the demo sessions (ADR-ST-007) ---------------------------
+
+ROOT = __import__("pathlib").Path(__file__).parent.parent
+# Where Chromium may already be, when Playwright's own download is not there.
+SYSTEM_CHROMIUM = ("/usr/bin/chromium", "/usr/bin/chromium-browser", "/usr/bin/google-chrome")
+
+
+def _free_port() -> int:
+    import socket  # noqa: PLC0415 - only the browser tests need these
+
+    with socket.socket() as s:
+        s.bind(("127.0.0.1", 0))
+        return int(s.getsockname()[1])
+
+
+@pytest.fixture(scope="session")
+def demo_url(tmp_path_factory: pytest.TempPathFactory):
+    """The demo sessions, served by the real server on a port of their own."""
+    import os  # noqa: PLC0415
+    import subprocess  # noqa: PLC0415
+    import sys  # noqa: PLC0415
+    import time  # noqa: PLC0415
+    import urllib.request  # noqa: PLC0415
+
+    home = tmp_path_factory.mktemp("demo-home")
+    subprocess.run([sys.executable, str(ROOT / "scripts/demo_fixture.py"), str(home)], check=True)
+    port = _free_port()
+    env = {**os.environ, "HOME": str(home), "PYTHONPATH": str(ROOT / "src")}
+    env |= {"SESSION_TREE_PORT": str(port), "SESSION_TREE_HOST": "127.0.0.1"}
+    server = subprocess.Popen([sys.executable, "-m", "session_tree.server"], env=env)
+    url = f"http://127.0.0.1:{port}/"
+    deadline = time.monotonic() + 10
+    while time.monotonic() < deadline:
+        try:
+            urllib.request.urlopen(url + "api/ping", timeout=1).close()  # noqa: S310
+            break
+        except OSError:
+            time.sleep(0.1)
+    yield url
+    server.terminate()
+    server.wait(timeout=5)
+
+
+@pytest.fixture(scope="session")
+def chromium():
+    """Chromium through Playwright. Skips without one, except in CI, where that is a failure."""
+    import os  # noqa: PLC0415
+
+    try:
+        from playwright.sync_api import Error, sync_playwright  # noqa: PLC0415
+    except ImportError:
+        pytest.skip("Playwright is not installed: uv sync --all-extras")
+    with sync_playwright() as p:
+        try:
+            browser = p.chromium.launch()
+        except Error:
+            found = next((c for c in SYSTEM_CHROMIUM if os.path.exists(c)), None)  # noqa: PTH110
+            if found is None:
+                if os.environ.get("CI"):
+                    raise
+                pytest.skip("no browser: uv run playwright install chromium")
+            browser = p.chromium.launch(executable_path=found)
+        yield browser
+        browser.close()
+
+
+PHONE = {"viewport": {"width": 390, "height": 900}, "has_touch": True, "is_mobile": True}
+WIDE = {"viewport": {"width": 1400, "height": 1000}}
+
+
+@pytest.fixture(params=[PHONE, WIDE], ids=["phone", "wide"])
+def page(request: pytest.FixtureRequest, chromium, demo_url: str):
+    """The demo page, loaded and drawn, on a phone and on a wide screen."""
+    context = chromium.new_context(**request.param)
+    tab = context.new_page()
+    tab.goto(demo_url)
+    tab.wait_for_selector(".sess .node")
+    yield tab
+    context.close()

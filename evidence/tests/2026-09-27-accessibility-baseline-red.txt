@@ -1,0 +1,4 @@
+# Red before the change: 3832c44 plus ADR-ST-007 and the browser harness, no baseline yet, 2026-09-27T11:35:13Z
+FAILED tests/test_browser_accessibility.py::test_the_page_has_no_new_accessibility_problems[phone]
+FAILED tests/test_browser_accessibility.py::test_the_page_has_no_new_accessibility_problems[wide]
+2 failed in 3.10s
