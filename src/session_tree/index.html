@@ -98,6 +98,7 @@
   .node.dim,.chip.dim{opacity:.22}
   .edge{fill:none;stroke:#2f3947;stroke-width:1.3}
   .edge.lit{stroke:#7fb2ff;stroke-width:2}
+  .edge.lit.feeds{stroke:#9aa5b5;stroke-dasharray:5 4}
   .edge.dim{opacity:.15}
   .bandlbl{font-size:9px;fill:var(--faint)}
   .bandline{stroke:#1f2732;stroke-width:1}
@@ -268,6 +269,7 @@
     <span><i style="background:var(--gone)"></i>forkastet</span>
     <span>▸ 3/5 delmål skjult · ▾ vist</span>
     <span>↗ arbeid i en annen økt · ↖ arbeid for en annen økt</span>
+    <span>tent: ━ venter på · ╍ venter på den</span>
   </span>
 </header>
 <aside id="asks" aria-label="spørsmål til deg"></aside>
@@ -416,14 +418,16 @@ function lightNode(svg,n){
   // a task's chip is drawn beside it, not in it, and dims with it
   svg.querySelectorAll('.node,.chip').forEach(o=>o.classList.toggle('dim',o.dataset.id!==n.id &&
     !(n.blockedBy||[]).includes(o.dataset.id) && !(n.blocks||[]).includes(o.dataset.id)));
+  // what the task waits on (arrows into it) reads apart from what waits on it (arrows out)
   svg.querySelectorAll('.edge').forEach(o=>{
-    const lit=o.dataset.from===n.id||o.dataset.to===n.id;
-    o.classList.toggle('lit',lit); o.classList.toggle('dim',!lit);
+    const waits=o.dataset.to===n.id, feeds=o.dataset.from===n.id;
+    o.classList.toggle('lit',waits||feeds); o.classList.toggle('dim',!(waits||feeds));
+    o.classList.toggle('waits',waits); o.classList.toggle('feeds',feeds);
   });
 }
 function unlight(root){
   root.querySelectorAll('.node.dim,.chip.dim').forEach(o=>o.classList.remove('dim'));
-  root.querySelectorAll('.edge.lit,.edge.dim').forEach(o=>{o.classList.remove('lit');o.classList.remove('dim');});
+  root.querySelectorAll('.edge.lit,.edge.dim').forEach(o=>o.classList.remove('lit','dim','waits','feeds'));
 }
 /* A quick tap: light this node, or put it out if it was the one lit. The choice
    is remembered, so the next redraw of a live session puts it back. */

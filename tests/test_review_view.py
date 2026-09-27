@@ -112,3 +112,11 @@ def test_the_key_explains_the_chips():
     key = PAGE.split('<span class="key">', 1)[1].split("</span>\n</header>", 1)[0]
     for chip in ("▸", "▾", "↗", "↖"):
         assert chip in key, f"the key does not explain {chip}"
+
+
+def test_a_lit_task_tells_what_it_waits_on_from_what_waits_on_it():
+    assert "a solid arrow to what it waits on" in README, "the README does not say how the two arrows differ"
+    light = function("lightNode")
+    assert "'waits'" in light, "arrows into a lit task are not marked"
+    assert "'feeds'" in light, "arrows out of a lit task are not marked"
+    assert re.search(r"\.edge\.lit\.feeds\{[^}]*stroke-dasharray", PAGE), "both kinds of arrow look the same"
