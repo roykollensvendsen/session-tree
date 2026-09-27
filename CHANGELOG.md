@@ -98,6 +98,8 @@ versions follow [semantic versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- The keyboard's focus ring was the yellow that means a question. It is white.
+
 - On a wide screen, a small session before a full-width one sat alone with
   half its row empty. It takes the full width now.
 

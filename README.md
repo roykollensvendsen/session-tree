@@ -90,7 +90,7 @@ In every graph a dashed line reads `gjort ↑ · gjenstår ↓`: the levels abov
 are done, the rest is still to do.
 
 Everything works from a keyboard too. Tab reaches every task, chip and control,
-with a yellow ring on the one in focus; Enter lights a task's arrows and opens
+with a white ring on the one in focus (yellow is kept for questions); Enter lights a task's arrows and opens
 its details, and Esc closes them.
 Only a task with a question for you pulses, and only a question fills a task
 with colour; blocked and stalled work is marked more quietly. With reduced

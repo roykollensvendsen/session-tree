@@ -135,3 +135,11 @@ def test_text_in_the_cards_is_big_enough_to_read():
     ):
         size = float(re.search(rule, PAGE).group(1))
         assert size >= 11, f"{rule} sets {size} px"
+
+
+def test_the_focus_ring_is_not_the_question_yellow():
+    """Yellow means a question for you; a ring that is only where the keyboard is must not say it."""
+    rules = re.findall(r"[^\n}]*:focus-visible[^{]*\{[^}]*\}", PAGE)
+    assert rules, "there is no focus ring"
+    yellow = [r for r in rules if "#facc15" in r]
+    assert not yellow, f"the focus ring uses the question's yellow: {yellow}"
