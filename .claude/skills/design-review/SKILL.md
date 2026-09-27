@@ -29,14 +29,16 @@ moves or needs a tap, serve the demo and use it (`scripts/demo-viewer`, see
 
 ## 2. The three-second glance
 
-Look at `phone-page-none.png` and `wide-page-none.png` for three seconds each,
-then look away and answer:
+Look at the first screen of `phone-page-none.png` and `wide-page-none.png` —
+the top 900 and 1000 px, what shows before any scrolling — for three seconds
+each, then look away and answer:
 
 - Which session needs you, and for what?
 - Is anything stuck?
 
-The page exists to answer these. If the answer took longer than a glance, or
-was wrong, that is the first finding. Matthews and colleagues define
+The page exists to answer these. If the answer took longer than a glance, was
+wrong, or needed scrolling, that is the first finding. (The first run found a
+stalled session below the first screen this way.) Matthews and colleagues define
 glanceable as understood "with low cognitive effort", and name four
 principles: match expectations, use abstraction, make visuals distinct, keep
 them consistent.
@@ -75,7 +77,9 @@ From Chartability's heuristics for visualisations (critical ones first):
 - **Meaningful elements can be told apart.** Look at the four simulation
   pictures side by side: does any state disappear into another?
 - **Changes are not easy to follow.** When a live session redraws, can you
-  keep your place?
+  keep your place? Stills cannot show this: serve the demo, keep the page
+  open while a session changes (or while `scripts/demo-viewer` is restarted),
+  and watch what moves. Say plainly when this was not checked.
 
 ## 6. A model may go first; a person decides
 
