@@ -98,3 +98,15 @@ name = "a dismissed question no longer waits"
 file = "src/session_tree/state.py"
 find = 'if dismissal_key\(session_id, q\) not in dismissed'
 replace = 'if True'
+
+[[rule]]
+name = "questions waiting at start up are not sent"
+file = "src/session_tree/notify.py"
+find = 'before = set\(waiting\) if self\.seen is None else self\.seen'
+replace = 'before = self.seen or set()'
+
+[[rule]]
+name = "a question already sent is not sent again"
+file = "src/session_tree/notify.py"
+find = 'fresh = \[asked for key, asked in waiting\.items\(\) if key not in before\]'
+replace = 'fresh = [asked for key, asked in waiting.items()]'
