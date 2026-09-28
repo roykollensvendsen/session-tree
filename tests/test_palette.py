@@ -14,6 +14,7 @@ No browser is needed: the matrices and formulas are public and fixed.
 """
 
 import itertools
+import json
 import math
 import pathlib
 import re
@@ -166,3 +167,34 @@ def test_only_a_question_fills_a_task_with_colour():
     asks = re.search(r"\.node\.asks>rect\{[^}]*fill:(rgba\([^)]*\))", PAGE)
     assert asks, "a task with a question is not filled"
     assert rgba(asks.group(1))[1] >= 0.12, "a task with a question is filled no more strongly than the rest"
+
+
+QUESTION_YELLOW = ("#facc15", "250,204,21")
+EXTRAS = pathlib.Path(__file__).parent / "palette_extras.json"
+
+
+def colours_outside_the_tables() -> set[str]:
+    """Every colour the page writes outside the STATE table and the :root variables."""
+    root = PAGE.split(":root{", 1)[1].split("}", 1)[0]
+    table = PAGE.split("const STATE={", 1)[1].split("\n};", 1)[0]
+    rest = PAGE.replace(root, "").replace(table, "")
+    found = re.findall(r"#[0-9a-fA-F]{6}\b|#[0-9a-fA-F]{3}\b|rgba?\([^)]*\)", rest)
+    return {c.lower().replace(" ", "") for c in found}
+
+
+def test_no_colour_comes_from_outside_the_palette():
+    """ADR-ST-008 rule 5: a new colour is added to palette_extras.json on purpose, in review."""
+    allowed = set(json.loads(EXTRAS.read_text())) if EXTRAS.exists() else set()
+    new = sorted(colours_outside_the_tables() - allowed)
+    assert not new, f"colours outside the palette: {new}; add them to {EXTRAS.name} if they are meant"
+
+
+def test_the_question_yellow_is_used_for_questions_only():
+    """ADR-ST-008 rule 3: yellow means a question for you, and nothing else."""
+    elsewhere = [
+        line.strip()[:90]
+        for line in PAGE.splitlines()
+        if any(y in line.replace(" ", "") for y in QUESTION_YELLOW)
+        and not re.search(r"ask|\.q\{|q\.style", line, re.IGNORECASE)
+    ]
+    assert not elsewhere, f"the question yellow used for something else: {elsewhere}"
