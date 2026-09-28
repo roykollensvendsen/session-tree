@@ -36,6 +36,7 @@ decision nobody writes down.
 | [ADR-ST-005](ADR-ST-005-a-node-can-hold-a-breakdown.md) | a node can hold a breakdown, folded behind a symbol | Accepted |
 | [ADR-ST-006](ADR-ST-006-a-question-can-be-dismissed.md) | a question can be dismissed, and the server keeps the dismissal | Accepted |
 | [ADR-ST-007](ADR-ST-007-the-viewer-is-tested-in-a-browser.md) | the viewer is tested in a real browser, accessibility included | Accepted |
+| [ADR-ST-008](ADR-ST-008-design-rules-for-the-viewer.md) | the viewer's design rules: who needs you first, only a question alarms | Accepted |
 
 What is deliberately left undone, and what would make each worth doing, is
 [`deferred.md`](deferred.md). A thing left undone with no trigger is a thing
