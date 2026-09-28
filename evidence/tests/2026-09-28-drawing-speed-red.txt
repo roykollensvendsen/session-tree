@@ -1,0 +1,8 @@
+# Rule turned off by hand: 2 ms of extra work per task added to renderGoal(), on bb260da, 2026-09-28T06:14:11Z
+FAILED tests/test_browser_speed.py::test_the_demo_redraws_within_its_budget[phone]
+FAILED tests/test_browser_speed.py::test_the_demo_redraws_within_its_budget[wide]
+FAILED tests/test_browser_speed.py::test_a_big_goal_redraws_within_its_budget[phone-300]
+FAILED tests/test_browser_speed.py::test_a_big_goal_redraws_within_its_budget[phone-1000]
+FAILED tests/test_browser_speed.py::test_a_big_goal_redraws_within_its_budget[wide-300]
+FAILED tests/test_browser_speed.py::test_a_big_goal_redraws_within_its_budget[wide-1000]
+6 failed in 40.59s
