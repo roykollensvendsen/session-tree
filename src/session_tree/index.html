@@ -49,6 +49,7 @@
   .shead{display:flex;align-items:center;gap:9px;padding:9px 13px;cursor:pointer;
          background:linear-gradient(90deg,rgba(59,130,246,.09),transparent)}
   .shead:hover{background:rgba(255,255,255,.035)}
+  .pill.changed{color:#7fb2ff;border-color:#7fb2ff}
   .pill{font-size:10px;padding:1.5px 7px;border-radius:99px;border:1px solid var(--line);color:var(--dim);white-space:nowrap}
   .pill.on{color:#bfe3ff;border-color:rgba(59,130,246,.55);background:rgba(59,130,246,.14)}
   .pill.bg{color:#e8d6a8;border-color:rgba(234,179,8,.4);background:rgba(234,179,8,.1)}
@@ -928,6 +929,14 @@ function renderGoal(goal,sess,width,size){
       const mark=small(x,p.y+size.idTop+1,look.cue,size.idFont);
       mark.style.fill=look.stroke;
     }
+    // changed while you were away: a small blue dot in the top left corner
+    const marked=MARKED.has(sess.sessionId+'/'+n.id);
+    if(marked){
+      g.classList.add('changed');
+      const dot=document.createElementNS(NS,'circle'); dot.setAttribute('class','seenmark');
+      dot.setAttribute('cx',p.x+4); dot.setAttribute('cy',p.y+4); dot.setAttribute('r',3.5); dot.setAttribute('fill','#7fb2ff');
+      g.appendChild(dot);
+    }
     if(asking){
       const q=small(p.x+p.w-size.idFont-5-(chipOf(n)?size.chipW:0),p.y+size.idTop+2,'?',size.idFont*1.5);
       q.style.fill='#facc15'; q.style.fontWeight='700';
@@ -977,7 +986,8 @@ function renderGoal(goal,sess,width,size){
         `<div class="row">rørte ${esc([...new Set(n.files)].slice(0,8).join(', '))}${n.files.length>8?' …':''}</div>`:'';
       const bad=(n.failures||[]).length?
         `<div class="row" style="color:#f0a8a8">${n.failures.length} kommando${n.failures.length>1?'er':''} feilet · ${esc(n.failures[0])}</div>`:'';
-      return `<h4>#${n.id} · ${esc(n.subject)}</h4>
+      const since=MARKED.has(sess.sessionId+'/'+n.id)?'<div class="row" style="color:#7fb2ff">● endret siden du så sist</div>':'';
+      return `<h4>#${n.id} · ${esc(n.subject)}</h4>${since}
         <div style="color:${COLOR[n.view]};font-size:11px;font-weight:600">${LABEL[n.view]||n.view}</div>
         ${asking?`<div class="ask">? ${esc(n.ask)}</div>`:n.askDismissed?`<div class="ask" style="opacity:.6">? ${esc(n.ask)} — avvist</div>`:''}${n.breakdown?`<div class="row">delmål: ${n.breakdown.done}/${n.breakdown.total} ferdig${n.breakdown.disagrees?' — noden er ferdig, men ikke alle delmålene':''}</div>`:''}${n.remote?`<div class="row">arbeid i en annen økt: ${esc(n.remote.title)} · ${n.remote.done}/${n.remote.total} ferdig</div>`:''}${n.description?`<p>${esc(n.description)}</p>`:''}${waiting}${time}${files}${bad}
         <div class="row">${esc(sess.project)}${sess.branch?' · '+esc(sess.branch):''}</div>`;
@@ -992,9 +1002,11 @@ function renderGoal(goal,sess,width,size){
       hideTip(); unlight(svg);
     });
     g.addEventListener('pointerdown',e=>{
-      if(e.pointerType!=='mouse') pressNode(e,svg,n,key,ev=>showTip(ev,details(),r));
+      if(e.pointerType!=='mouse') pressNode(e,svg,n,key,ev=>{ showTip(ev,details(),r); clearMark(g,sess,n); });
     });
     g.addEventListener('contextmenu',e=>e.preventDefault());
+    // a click or a tap is looking at it: the mark for a change goes
+    g.addEventListener('click',()=>clearMark(g,sess,n));
     // the keyboard has no hover and no hold: Enter or Space lights the task and opens its details
     g.setAttribute('tabindex','0'); g.setAttribute('role','button');
     g.setAttribute('aria-label',`#${n.id} ${n.subject}, ${LABEL[n.view]||n.view}`);
@@ -1003,7 +1015,7 @@ function renderGoal(goal,sess,width,size){
       e.preventDefault();
       unlight(document); TAPPED={key:key,id:n.id}; lightNode(svg,n);
       const b=r.getBoundingClientRect();
-      showTip({clientX:b.right,clientY:b.top},details(),r);
+      showTip({clientX:b.right,clientY:b.top},details(),r); clearMark(g,sess,n);
     });
     svg.appendChild(g);
     if(chipEl) svg.appendChild(chipEl);
@@ -1138,6 +1150,40 @@ function turnStrip(s, until){
   return box;
 }
 
+/* What changed while you were away. While the page is shown, SEEN follows it,
+   so nothing changing in front of you is marked; while it is hidden, SEEN
+   stands still, and is kept in the browser. On the first drawing after coming
+   back, every task whose state differs from SEEN, or that is new, is marked
+   until it is opened. A session never seen before marks nothing. */
+let SEEN=null, RETURNING=true;
+const MARKED=new Set();
+try{ SEEN=JSON.parse(localStorage.getItem('st.seen')||'null'); }catch(e){ SEEN=null; }
+function snapshot(data){
+  const seen={};
+  for(const s of (data&&data.sessions)||[]){ seen[s.sessionId]={};
+    for(const g of s.goals||[]) for(const n of g.nodes||[]) seen[s.sessionId][n.id]=n.view; }
+  return seen;
+}
+function followSeen(data){
+  if(document.visibilityState==='hidden') return;
+  const now=snapshot(data);
+  if(RETURNING&&SEEN) for(const [sid,tasks] of Object.entries(now)){
+    const before=SEEN[sid]; if(!before) continue;
+    for(const [id,view] of Object.entries(tasks)) if(before[id]!==view) MARKED.add(sid+'/'+id);
+  }
+  RETURNING=false; SEEN=now;
+}
+function keepSeen(){ if(!SEEN&&LAST) SEEN=snapshot(LAST); if(SEEN) remember('st.seen',JSON.stringify(SEEN)); }
+document.addEventListener('visibilitychange',()=>{
+  if(document.visibilityState==='hidden'){ MARKED.clear(); keepSeen(); }
+  else { RETURNING=true; refresh(); }
+});
+addEventListener('pagehide',keepSeen);
+function clearMark(g,sess,n){
+  if(!MARKED.delete(sess.sessionId+'/'+n.id)) return;
+  g.classList.remove('changed'); const dot=g.querySelector('.seenmark'); if(dot) dot.remove();
+}
+
 /* A goal as a list of its tasks, for when the graph is not the way to read it:
    a big goal on a phone, or a screen reader (Chartability: "no table"). What
    needs the reader comes first. Chosen per goal, and remembered. */
@@ -1179,6 +1225,7 @@ function renderSession(s){
 
   const head=document.createElement('div');
   head.className='shead';
+  const changedHere=[...MARKED].filter(k=>k.startsWith(s.sessionId+'/')).length;
   const state=s.active?'<span class="pill on">aktiv</span>':
     (s.alive?`<span class="pill">${ago(s.quietSeconds)} siden</span>`:'<span class="pill">avsluttet</span>');
   // the caret is the header's keyboard stop; its click reaches the header's own
@@ -1187,6 +1234,7 @@ function renderSession(s){
     <span class="sname">${esc(s.name||s.firstPrompt||'(uten navn)')}</span>
     <span class="spath">${esc(s.project)}${s.branch?' · '+esc(s.branch):''}</span>
     <span style="flex:1"></span>
+    ${changedHere?`<span class="pill changed" title="endret siden du så sist">● ${changedHere} endret</span>`:''}
     ${s.attention==='asking'?`<span class="att asking" title="${s.questions.length} spørsmål venter på svar">? ${s.questions.length}</span>`:''}
     ${s.attention==='waiting'?'<span class="att waiting">ledig</span>':''}
     ${s.attention==='stalled'?'<span class="att stalled">står stille</span>':''}
@@ -1594,6 +1642,7 @@ let MIXED=false;
 function render(data){
   ageRunning(data);
   LAST=data;
+  followSeen(data);
   MIXED=new Set((data.sessions||[]).map(s=>s.agent||'claude')).size>1;
   renderAsks(data);
   // ?rp=<0..1> opens replay on the first active session at that point of its

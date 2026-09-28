@@ -1,0 +1,7 @@
+# Red before the change: af2da59 plus the README section, 2026-09-28T06:40:57Z
+FAILED tests/test_browser_changed.py::test_a_task_that_changed_while_you_were_away_is_marked[phone]
+FAILED tests/test_browser_changed.py::test_a_task_that_changed_while_you_were_away_is_marked[wide]
+FAILED tests/test_browser_changed.py::test_leaving_the_page_remembers_what_you_saw[phone]
+FAILED tests/test_browser_changed.py::test_leaving_the_page_remembers_what_you_saw[wide]
+4 failed in 3.49s
+# The first test was then corrected: it set the stored view before a reload, and the page's own pagehide overwrote it; it now sets it as the new page starts.
