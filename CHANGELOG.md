@@ -82,6 +82,10 @@ versions follow [semantic versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- After you have been away from the page, a task whose state changed in the
+  meantime, or that is new, carries a small blue **●** until you open it, and
+  its session's header says how many.
+
 - **▤** beside a goal's title shows its tasks as a list, with what needs you
   first.
 

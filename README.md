@@ -217,6 +217,15 @@ fifteen minutes, which is the one case where going in and looking is worth
 doing. How long ago a session last did anything reads `40 min siden`, so it is
 not mistaken for that warning.
 
+## What changed while you were away
+
+When you leave the page (switch tab or app, or lock the phone), your browser
+remembers the state of every task. When you come back, a task whose state
+changed in the meantime, or that is new, carries a small blue **●** and the
+word `endret` in its details, and its session's header counts them. The mark
+goes when you tap or open that task, or the next time you leave the page.
+While you are looking, nothing is marked: you see the changes as they happen.
+
 ## A question waiting on you
 
 `ledig` only says a session is idle, and a session that has finished
