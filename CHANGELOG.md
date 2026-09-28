@@ -82,6 +82,9 @@ versions follow [semantic versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- A new question can be pushed to your phone through ntfy, once, when a topic
+  is set up.
+
 - After you have been away from the page, a task whose state changed in the
   meantime, or that is new, carries a small blue **●** until you open it, and
   its session's header says how many.

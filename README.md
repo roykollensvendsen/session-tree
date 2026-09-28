@@ -263,6 +263,52 @@ The node's popover still shows the question, marked `avvist`. A dismissal is of
 that question's text; if the agent asks something new on the same node, it
 shows again ([ADR-ST-006](decisions/ADR-ST-006-a-question-can-be-dismissed.md)).
 
+## A question on your phone
+
+A question waits only as long as nobody looks. The server can send each new
+question to your phone through [ntfy](https://ntfy.sh), a small push service
+with a phone app, so you hear of it with no page open. It is off until you set
+it up:
+
+1. **Install the ntfy app** on the phone: from Google Play, F-Droid or the App
+   Store, or open <https://ntfy.sh/app> in a browser.
+2. **Pick a topic name nobody can guess.** On the public ntfy.sh anyone who
+   knows the name can read what is sent to it, so the name works as a
+   password. Make one, and keep it with the viewer's address on the second
+   line, so a tap on a message opens the page:
+
+   <!-- not run: writes a settings file in your home directory -->
+   ```bash
+   topic="session-tree-$(python3 -c 'import secrets; print(secrets.token_urlsafe(18))')"
+   mkdir -p ~/.claude/session-tree
+   printf 'https://ntfy.sh/%s\nhttp://<your tailnet address>:8787/\n' "$topic" \
+     > ~/.claude/session-tree/ntfy.url
+   chmod 600 ~/.claude/session-tree/ntfy.url
+   echo "$topic"
+   ```
+
+   Leave out the second line if you do not open the viewer from the phone.
+3. **Subscribe to that name** in the app: **+**, the name, server `ntfy.sh`.
+4. **Check that a message gets through** before relying on it:
+
+   <!-- not run: sends a message over the internet -->
+   ```bash
+   curl -d "session-tree can reach me" "$(head -1 ~/.claude/session-tree/ntfy.url)"
+   ```
+
+5. **Restart the server** so it reads the file: `session-tree restart`.
+
+`SESSION_TREE_NTFY` and `SESSION_TREE_NTFY_CLICK` do the same as the file's two
+lines, from the environment.
+
+A message says which session asks, and the question, cut to 200 characters.
+Questions already waiting when the server starts are not sent, and each one is
+sent once, even with a server on each address. The question's text passes
+through ntfy.sh; to keep it at home, run
+[your own ntfy server](https://docs.ntfy.sh/install/) and put its address in
+the file instead
+([ADR-ST-009](decisions/ADR-ST-009-a-new-question-is-pushed-to-the-phone.md)).
+
 ## A breakdown folded into its node
 
 When an agent hands part of a goal on, the steps of that part say which node

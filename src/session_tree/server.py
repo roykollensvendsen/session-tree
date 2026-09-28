@@ -24,6 +24,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from typing import Any
 
+from session_tree import notify
 from session_tree.state import DISMISSED_FILE, add_dismissal, build
 
 HERE = Path(__file__).resolve().parent
@@ -79,18 +80,21 @@ def _broadcast(payload: str) -> None:
             sink.put_nowait(payload)
 
 
-def watch(stop: threading.Event | None = None) -> None:
+def watch(stop: threading.Event | None = None, notifier: notify.Notifier | None = None) -> None:
     """Poll the transcripts and push whenever the picture changes.
 
     Only a change outside VOLATILE_KEYS counts; if nothing else moved, the
     picture is pushed at most every REFRESH_SECONDS. /api/state and a newly
-    connected stream always get the freshest picture.
+    connected stream always get the freshest picture. A notifier, when one is
+    set up, sees every picture, so a new question reaches the phone (ADR-ST-009).
     """
     previous: str | None = None
     pushed_at = 0.0
     while stop is None or not stop.is_set():
         try:
             picture = build()
+            if notifier:
+                notifier.look(picture)
             payload = json.dumps(picture, ensure_ascii=False, default=str)
             signature = json.dumps(_stable(picture), ensure_ascii=False, default=str)
         except Exception as error:  # noqa: BLE001 - the thread must never die
@@ -219,7 +223,9 @@ def serve(port: int | None = None, host: str | None = None) -> None:
     """Start the watcher and serve until interrupted."""
     chosen = port or int(os.environ.get("SESSION_TREE_PORT", DEFAULT_PORT))
     where = resolve_host(host)
-    threading.Thread(target=watch, daemon=True).start()
+    chosen_notify = notify.settings()
+    notifier = notify.Notifier(chosen_notify) if chosen_notify else None
+    threading.Thread(target=watch, args=(None, notifier), daemon=True).start()
     server = make_server(chosen, where)
     sys.stderr.write(f"session-tree on http://{where}:{chosen}/\n")
     server.serve_forever()
