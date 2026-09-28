@@ -53,6 +53,12 @@ browser tests (marked `browser`, ADR-ST-007) drive the demo in Chromium at a
 phone's width and a wide screen's. Then look at the screenshots, and for a
 change to how the page looks or reads, run the `design-review` skill.
 
+Keep to the design rules in `decisions/ADR-ST-008-design-rules-for-the-viewer.md`.
+A new state, label or view gets a case in `scripts/demo_fixture.py` in the same
+change; `tests/test_demo_fixture.py` reads the states and labels from the code
+and fails until the demo has one. A new colour goes into
+`tests/palette_extras.json` on purpose.
+
 ## 3. Push only what would pass
 
 The `pre-push` hook runs the gates when `core.hooksPath` is `.githooks`.
