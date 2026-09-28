@@ -42,16 +42,30 @@ def nodes(picture: dict) -> list[dict]:
     return [n for g in goals(picture) for n in g["nodes"]]
 
 
+def page_states() -> set[str]:
+    """Every state the page has a look for, read from its STATE table, so a new one needs a demo case."""
+    page = (ROOT / "src/session_tree/index.html").read_text()
+    table = page.split("const STATE={", 1)[1].split("\n};", 1)[0]
+    return set(re.findall(r"^\s*(\w+):\s*\{", table, re.MULTILINE))
+
+
+def server_labels() -> set[str]:
+    """Every label the server can give a session, read from _attention in state.py."""
+    code = (ROOT / "src/session_tree/state.py").read_text()
+    body = code.split("def _attention(", 1)[1].split("\ndef ", 1)[0]
+    return set(re.findall(r'return "(\w+)"', body))
+
+
 def test_every_state_a_task_can_be_drawn_in_is_there(picture):
     views = {n["view"] for n in nodes(picture)}
-    for view in ("pending", "waiting", "in_progress", "blocked", "stalled", "completed", "abandoned"):
-        assert view in views, f"no task is drawn as {view}"
+    for view in page_states():
+        assert view in views, f"no task in the demo is drawn as {view}; add one to scripts/demo_fixture.py"
 
 
 def test_every_label_a_session_can_carry_is_there(picture):
     labels = {s["attention"] for s in picture["sessions"]}
-    for label in ("working", "waiting", "stalled", "asking", "ended"):
-        assert label in labels, f"no session is labelled {label}"
+    for label in server_labels():
+        assert label in labels, f"no demo session is labelled {label}; add one to scripts/demo_fixture.py"
 
 
 def test_there_are_sessions_with_one_goal_and_with_many(picture):
