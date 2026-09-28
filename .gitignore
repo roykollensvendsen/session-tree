@@ -17,3 +17,4 @@ coverage.xml
 htmlcov/
 scripts/.mutate-recovery.json
 review-shots/
+visual-results/
