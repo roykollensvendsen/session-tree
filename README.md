@@ -379,8 +379,9 @@ python scripts/mutate.py          # proves each rule's test can fail
 The replay engine lives in the page, and its tests run *that* copy through
 node rather than a Python port, so the thing tested is the thing shipped.
 
-What no test can tell you is where a newcomer gets lost. A five-minute test
-with someone else, against the demo, is in [`docs/user-test.md`](docs/user-test.md).
+What no test can tell you is where a newcomer gets lost. A ten-minute test
+with someone else, against the demo, is in [`docs/user-test.md`](docs/user-test.md):
+send them the link, and it is all they need.
 
 ## Licence
 
