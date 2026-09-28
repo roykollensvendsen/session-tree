@@ -1,0 +1,4 @@
+# Red before the change: 883cf25 plus ADR-ST-008, no palette_extras.json yet, 2026-09-27T20:14:52Z
+FAILED tests/test_palette.py::test_no_colour_comes_from_outside_the_palette
+FAILED tests/test_palette.py::test_the_question_yellow_is_used_for_questions_only
+2 failed, 22 passed in 0.05s

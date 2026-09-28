@@ -101,6 +101,9 @@ versions follow [semantic versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- The ring on a task a link took you to was the question's yellow, even when
+  the link was not to a question. It is white.
+
 - The keyboard's focus ring was the yellow that means a question. It is white.
 
 - On a wide screen, a small session before a full-width one sat alone with
