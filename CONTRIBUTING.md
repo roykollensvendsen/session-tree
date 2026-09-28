@@ -115,6 +115,28 @@ in `tests/accessibility_baseline.json` is a ceiling, so a jump shows. The
 graph's colours and text are checked by `tests/test_palette.py`, without a
 browser.
 
+## Pictures of the page
+
+`tests/test_browser_visual.py` compares pictures of the demo's first screen,
+at a phone's width and a wide screen's, with the ones kept in `tests/visual/`.
+They are small palette PNGs of the first screen only, so the repository grows
+by little, and only when the page's look changes on purpose.
+Animations are stopped and ages and times are masked. Fonts differ between
+machines, so the kept pictures are made in CI and only the CI job on Python
+3.13 compares them; on your machine the test skips.
+
+When a change is meant to alter how the page looks, the check fails and CI
+keeps the new pictures, and a picture of where they differ, as the
+`visual-results` artefact. Look at them, and if they are right, take
+`phone.png` and `wide.png` from it into `tests/visual/` and commit them with
+the change:
+
+<!-- not run: downloads from a CI run -->
+```
+gh run download <run id> -n visual-results -D /tmp/visual
+cp /tmp/visual/phone.png /tmp/visual/wide.png tests/visual/
+```
+
 ## Demo sessions to look at a change against
 
 A change to the viewer is looked at against a set of made-up sessions, with

@@ -50,6 +50,10 @@ def stamp(ago: float) -> str:
 class Fake:
     """Writes one synthetic session: its register entry and its transcript."""
 
+    # each session starts a minute after the last, so the page's order never
+    # rests on the order the filesystem lists the files in
+    started = 0
+
     def __init__(self, home: Path, sid: str, pid: int, name: str, *, status: str) -> None:
         """Register the session; status is what Claude Code declares, busy or idle."""
         cwd = "/home/demo/" + name.replace(" ", "-")
@@ -63,7 +67,8 @@ class Fake:
         self.path.parent.mkdir(parents=True, exist_ok=True)
         (home / ".claude" / "sessions").mkdir(parents=True, exist_ok=True)
         entry = {"pid": pid, "sessionId": sid, "cwd": cwd, "name": name, "kind": "interactive"}
-        entry |= {"startedAt": int((NOW - 3 * 3600) * 1000), "status": status}
+        Fake.started += 1
+        entry |= {"startedAt": int((NOW - 3 * 3600 + Fake.started * MINUTE) * 1000), "status": status}
         (home / ".claude" / "sessions" / f"{pid}.json").write_text(json.dumps(entry))
 
     def _w(self, entry: dict[str, object]) -> None:
