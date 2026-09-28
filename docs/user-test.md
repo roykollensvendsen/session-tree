@@ -1,34 +1,24 @@
-# A five-minute user test of the viewer
+# Try the viewer: a ten-minute test
 
-The people who build a page are the worst judges of it. They know where
-everything is. This is a short test where someone else uses the viewer
-against the demo sessions while you watch. It is not a check that anything
-works; the automatic tests do that. It finds where a newcomer hesitates,
-looks in the wrong place or reads something wrongly.
+Thank you for helping. This page is all you need.
 
-Run it before a release, and after a change to how the page is laid out.
+**session-tree** is a page that shows what AI coding assistants are working
+on. Each assistant splits its work into steps and draws them as a small map. A
+person glances at the page to see which assistant needs them, and what is stuck.
 
-## Before the test
+Its makers know where everything is on it, so they cannot see where a newcomer
+gets lost. That is what you can show them. You will start a demo with made-up
+assistants, such as one planning a birthday party, answer eight questions using
+the page, and send back where it was hard. **If something is hard, the page is
+at fault, not you.** That is exactly what the test is for.
 
-The demo is seven made-up sessions, such as a birthday party and a house
-move, served by the viewer's own server. It needs no real sessions and no
-account.
+It takes about ten minutes: two to start the demo, five for the questions, and
+a few to write back.
 
-### What you need
+## 1. Start the demo
 
-- A Linux or macOS machine with `git`, `bash` and Python 3.11 or newer. The
-  server uses only Python's standard library, so there is nothing to install.
-- For a test on a phone: a network the phone and the machine share. That is
-  either a [Tailscale](https://tailscale.com) tailnet with both on it, or the
-  same Wi-Fi. The server has no password, but the demo holds nothing private.
-
-### Start the demo
-
-Start it at most ten minutes before the tester begins. The demo ages like real
-sessions do, and after fifteen minutes a working session reads as stalled, so
-the answers below stop being true. Start it again for each tester.
-
-On this machine only, for a test on the machine's own screen:
+You need a Linux or macOS computer with `git`, `bash` and Python 3.11 or newer.
+Nothing else is installed. Paste this into a terminal:
 
 <!-- not run: clones a repository and starts a server in the foreground -->
 ```bash
@@ -37,83 +27,99 @@ cd session-tree
 scripts/demo-viewer
 ```
 
-Then open <http://127.0.0.1:8798/>.
+Leave it running, and open <http://127.0.0.1:8798/> in a browser. You should
+see seven assistants, with **book club** first.
 
-For a phone, the server has to listen on an address the phone can reach. Find
-it with `tailscale ip -4` on a tailnet, or `hostname -I` (Linux) or
-`ipconfig getifaddr en0` (macOS) on Wi-Fi, and start the demo on it:
+**To use a phone instead,** the phone and the computer must share a network,
+such as the same Wi-Fi. Find the computer's address with `hostname -I`
+(Linux) or `ipconfig getifaddr en0` (macOS). Stop the demo with Ctrl-C and start
+it on that address:
 
 <!-- not run: starts a server in the foreground -->
 ```bash
 SESSION_TREE_HOST=<that address> scripts/demo-viewer
 ```
 
-The phone then opens `http://<that address>:8798/`. If the page does not load,
-a firewall on the machine is the usual cause: port 8798 has to be open.
+Then open `http://<that address>:8798/` on the phone. If it does not load, a
+firewall on the computer is the usual cause: port 8798 has to be open.
 
-### Check it before the tester arrives
+**Start the questions within ten minutes.** The demo ages like the real thing,
+and after fifteen minutes it starts to look different from what the questions
+expect. If you are late, stop it with Ctrl-C and start it again.
 
-The page should show seven sessions, with **book club** first and a line at
-the top saying questions are waiting. If **birthday party** says `står stille`,
-the demo is too old: stop it with Ctrl-C and start it again.
+## 2. Answer the questions
 
-Let the tester choose a phone or a computer, whichever they would use, and
-have the observer sheet below ready, on paper or a copy.
+Take them one at a time, in order. Give each about a minute at most, and move
+on if you are stuck; being stuck is a useful answer. Do not look anything up
+elsewhere, and do not read the answers at the bottom until you are done.
 
-## What to tell the tester
+For each question, jot down:
 
-Read this aloud, and then say nothing more about the page:
+- your answer;
+- **how sure** you are, and roughly **how long** it took;
+- **where you looked first**, and anything that confused you.
 
-> This page shows a few assistants that each work on a task for someone,
-> such as planning a party. Each task is split into steps. I would like you
-> to answer some questions using the page. Please think aloud: say what you
-> look at and what you expect. You cannot do anything wrong; if something is
-> hard, the page is at fault, not you. I will not help, so that I can see
-> where it is unclear.
+The page's own labels are in Norwegian, such as `ledig` and `står stille`. If
+you do not read Norwegian, say so when you write back; that is worth knowing too.
 
-The page's labels are in Norwegian (`ledig`, `står stille`, `avvis`), and the
-demo's tasks in English. If the tester does not read Norwegian, say so in the
-notes, since it will colour tasks 2 and 7.
+1. Look at the page for **five seconds**, then look away. Which assistant needs
+   something from you?
+2. Is anything stuck? Where?
+3. In **birthday party**, what is being worked on now, and what could be
+   started next?
+4. In **birthday party**, why was the clown dropped?
+5. Open the biggest map on its own, and find what the step "The skip is
+   collected" is waiting for.
+6. In **birthday dinner**, is any helper working right now?
+7. One question on the page asks about Thursday. Pretend it has been answered
+   elsewhere, and put it away.
+8. Which assistant has stopped for good?
 
-## The tasks
+Then three last ones:
 
-Read one at a time. Stop a task after about a minute and move on; being stuck
-that long is the finding.
+- What was the hardest thing to find?
+- Did a colour or a symbol turn out to mean something other than you thought?
+- From this page alone, would you know when an assistant needs you?
 
-| # | Ask | What answers it | What it tests |
-|---|---|---|---|
-| 1 | Look at the page for five seconds, then look away. Which assistant needs something from you? | **book club**, which has questions waiting | Whether the page says who needs you at a glance |
-| 2 | Is anything stuck? Where? | **street clean-up**: "Gloves and bags are bought" has stood still, and "The skip is delivered" was started before what it waits on was done | Whether stalled and blocked are seen, and told apart |
-| 3 | In **birthday party**, what is being worked on now, and what could be started next? | "Every guest has an invitation" is being worked on. "The cake is ordered" is ready to start. "The room is decorated" waits on the invitations | Whether the arrows and states are read as order |
-| 4 | Why was the clown dropped? | Its details say Maja is scared of clowns | That the struck-through task can be opened, and has details |
-| 5 | Open the biggest plan on its own, and find what "The skip is collected" waits on | **street clean-up**, full screen: "The rubbish is in the skip" | The full-screen view and finding one task among eighty |
-| 6 | In **birthday dinner**, is any helper working right now? | Yes, one, on "The shopping is done"; two others have finished | Whether the helpers' dots are read |
-| 7 | One question asks about Thursday. It has already been answered elsewhere. Put it away | The question list at the top, **⊘**, then confirm | The question list and putting a question away |
-| 8 | Which assistant has stopped for good? | **bike repair** | Whether an ended session looks ended |
+Stop the demo with Ctrl-C when you are done. It leaves nothing behind but the
+folder you cloned.
 
-## The observer sheet
+## 3. Send back what you found
 
-For each task write:
+[**Open a new report on GitHub**](https://github.com/roykollensvendsen/session-tree/issues/new?template=user-test.md).
+It has a place for each answer. Say whether you used a phone or a computer. No
+GitHub account? Reply to whoever sent you this link, with the same notes.
 
-- **Done:** alone, with a hint, or not done.
-- **Time:** roughly, in seconds.
-- **Where they looked first**, and anything they read wrongly.
-- **What they said**, in their words.
+<details>
+<summary><b>The answers.</b> Open only once you have written yours down.</summary>
 
-Then ask:
+1. **book club**: it has questions waiting for you.
+2. Two steps in **street clean-up**. "Gloves and bags are bought" has stood
+   still for a long time. "The skip is delivered" was started before the step
+   it waits for was done.
+3. "Every guest has an invitation" is being worked on. "The cake is ordered"
+   could start now. "The room is decorated" waits for the invitations.
+4. The clown step's details say Maja is scared of clowns.
+5. "The rubbish is in the skip", in **street clean-up** opened on its own.
+6. Yes, one, on "The shopping is done". Two others have finished.
+7. The list of questions at the top, then **⊘** beside the question, and
+   confirm.
+8. **bike repair**.
 
-1. What was the hardest thing to find?
-2. What did you think a colour or a symbol meant that turned out to mean
-   something else?
-3. Would you know, from this page alone, when an assistant needs you?
+</details>
 
-## After the test
+## For whoever sends the link
 
-Write what happened as `docs/user-tests/<date>.md`, with the tester described
-only by how used to such tools they are, never by name. List each problem once,
-worst first, with the task it came from. Then treat it like a design review
-(`.claude/skills/design-review/SKILL.md`): the user of the viewer decides what
-to fix, and each fix goes through `.claude/skills/ship-change/SKILL.md`.
+This test was made to find where a newcomer gets lost, which no automatic
+test here can. If you can sit beside the tester, do. Ask them to think aloud,
+and say nothing that helps; where they hesitate is the finding. Otherwise
+sending the link is enough.
 
-Where a problem can be measured, add the test that would have caught it, so
-the next user test does not have to find it again.
+Each report arrives as an issue labelled `user-test`. Gather the problems it
+names, worst first, and treat them like a design review
+(`.claude/skills/design-review/SKILL.md`). The viewer's owner decides what to
+fix, and each fix goes through `.claude/skills/ship-change/SKILL.md`. Where a
+problem can be measured, add the test that would have caught it.
+
+The answers above come from `scripts/demo_fixture.py`. A change there can make
+one wrong, and nothing checks them, so read them again after changing the demo.
