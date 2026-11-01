@@ -103,7 +103,7 @@ jobs:
           # The kept pictures of the page were made on this job's image, so only
           # this job compares them (tests/test_browser_visual.py).
           SESSION_TREE_VISUAL: ${{ matrix.python == '3.13' && 'check' || '' }}
-      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: always() && matrix.python == '3.13'
         with:
           name: visual-results
@@ -116,7 +116,7 @@ jobs:
       - name: Pictures for a design review
         if: matrix.python == '3.13'
         run: uv run python scripts/review_shots.py review-shots
-      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: matrix.python == '3.13'
         with:
           name: review-shots
